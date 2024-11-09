@@ -1,0 +1,55 @@
+/* Estilos generales del header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Distribuye los elementos de manera equitativa */
+  background-color: #1976d2; /* Color dorado */
+  padding: 10px 20px;
+  color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+/* Estilos para el logo/título */
+.header-title {
+  font-size: 24px;
+  text-decoration: none;
+  color: white;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* Barra de búsqueda */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  padding: 5px 10px;
+}
+
+.search-bar input {
+  border: none;
+  background: transparent;
+  color: white;
+  margin-left: 10px;
+}
+
+.search-bar input::placeholder {
+  color: white;
+}
+
+/* Botones e íconos */
+.header-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.icon-button {
+  color: white;
+  margin-left: 20px; /* Espaciado entre los íconos */
+}

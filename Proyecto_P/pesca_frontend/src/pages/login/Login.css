@@ -1,0 +1,53 @@
+/* styles/Login.css */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Centra el contenido verticalmente */
+    background-color: #f8f9fa; /* Color de fondo suave */
+  }
+  
+  .login-box {
+    background-color: #ffffff; /* Fondo blanco para el formulario */
+    padding: 2rem; /* Espaciado interno */
+    border-radius: 8px; /* Bordes redondeados */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra para darle profundidad */
+  }
+  
+  h2 {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .form-input {
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    color: #333;
+  }
+  
+  .submit-btn {
+    background-color: #007bff; /* Botón azul de Bootstrap */
+    padding: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease-in-out;
+  }
+  
+  .submit-btn:hover {
+    background-color: #0056b3; /* Oscurece el botón al hacer hover */
+  }
+  
+  @media (max-width: 768px) {
+    .login-box {
+      padding: 1.5rem; /* Ajusta el espaciado en pantallas más pequeñas */
+    }
+  
+    h2 {
+      font-size: 1.5rem; /* Tamaño de fuente más pequeño para el título */
+    }
+  }
+  

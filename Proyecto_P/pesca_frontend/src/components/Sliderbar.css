@@ -1,0 +1,13 @@
+/* Sidebar.css */
+.sidebar {
+    width: 240px;
+    background-color: #f4f4f4;
+    padding: 15px;
+    height: calc(100vh - 70px); /* Altura del sidebar para ajustarse al header */
+    margin-top: 70px; /* Ajusta el sidebar para que empiece justo debajo del header */
+    position: fixed;
+    top: 70px; /* Inicia justo debajo del header */
+    left: 0;
+    z-index: 999; /* Asegura que esté debajo del header */
+    overflow-y: auto; /* Para scroll en caso de que sea necesario */
+  }

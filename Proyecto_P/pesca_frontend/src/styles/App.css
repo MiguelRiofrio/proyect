@@ -1,0 +1,29 @@
+/* Ajustes generales para el layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.header {
+  background-color:#1976d2; /* Ajustar color si es necesario */
+  color: white;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 1000; /* Asegúrate de que el header esté por encima */
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+}
+
+.main-content {
+  margin-top: 64px; /* Compensar la altura del AppBar */
+}
+
+.body-content {
+  padding: 20px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
