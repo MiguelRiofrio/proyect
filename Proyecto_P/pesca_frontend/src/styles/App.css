@@ -27,3 +27,15 @@
   overflow-y: auto;
 }
 
+.map-section {
+  height: 500px; /* Tamaño definido para el contenedor */
+  position: relative;
+  overflow: hidden; /* Previene desbordamiento */
+}
+
+.map-container {
+  height: 100%; /* Ocupa todo el alto del contenedor padre */
+  width: 100%; /* Ocupa todo el ancho del contenedor padre */
+  border-radius: 10px; /* Opcional: bordes redondeados */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Opcional: sombra para diseño */
+}

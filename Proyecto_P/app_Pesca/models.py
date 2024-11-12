@@ -30,7 +30,7 @@ class ActividadPesquera(models.Model):
 # Modelo para LANCE
 class Lance(models.Model):
     codigo_lance = models.CharField(max_length=50, primary_key=True)
-    codigo_de_ingreso = models.ForeignKey(ActividadPesquera, on_delete=models.CASCADE, related_name='lances')
+    codigo_de_ingreso = models.ForeignKey(ActividadPesquera, on_delete=models.CASCADE, db_column='codigo_de_ingreso')
     faena = models.CharField(max_length=100)
     lance = models.IntegerField()
     calado_inicial_dia = models.IntegerField()
@@ -54,7 +54,7 @@ class Lance(models.Model):
 
 # Modelo para LANCE_CERCO
 class LanceCerco(models.Model):
-    codigo_lance = models.OneToOneField(Lance, on_delete=models.CASCADE, primary_key=True, related_name='lance_cerco')
+    codigo_lance = models.OneToOneField(Lance, on_delete=models.CASCADE, primary_key=True, db_column='codigo_de_ingreso')
     red_altura = models.DecimalField(max_digits=7, decimal_places=2)
     red_longitud = models.DecimalField(max_digits=7, decimal_places=2)
     malla_cabecero = models.DecimalField(max_digits=5, decimal_places=2)
@@ -68,7 +68,7 @@ class LanceCerco(models.Model):
 
 # Modelo para LANCE_ARRASTRE
 class LanceArrastre(models.Model):
-    codigo_lance = models.OneToOneField(Lance, on_delete=models.CASCADE, primary_key=True, related_name='lance_arrastre')
+    codigo_lance = models.OneToOneField(Lance, on_delete=models.CASCADE, primary_key=True, db_column='codigo_de_ingreso')
     calado_final_fecha = models.DateField()
     calado_final_hora = models.TimeField()
     calado_final_latitud_ns = models.CharField(max_length=1)
