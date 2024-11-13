@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import {
   Container,
-  Row,
-  Col,
+
   Form,
   FormGroup,
   Label,

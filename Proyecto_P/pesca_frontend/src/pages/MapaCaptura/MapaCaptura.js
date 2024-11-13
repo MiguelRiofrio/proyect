@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col } from 'react-grid-system';
-import MapWithMarkers from '../../components/MapWithMarkers';
-import FilterPanel from '../../components/FilterPanel';
-import LoadingModal from '../../components/LoadingModal';
-import ChartsSection from '../../components/ChartsSection'; // Asegúrate de que la ruta sea correcta
+import MapWithMarkers from './components/MapWithMarkers';
+import FilterPanel from './components/FilterPanel';
+import LoadingModal from './components/LoadingModal';
+import ChartsSection from './components/ChartsSection'; // Asegúrate de que la ruta sea correcta
 import { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './MapaCaptura.css';

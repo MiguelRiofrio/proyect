@@ -1,13 +1,16 @@
-import React  from 'react';
-import {  Container } from 'reactstrap';
+import React from 'react';
+import { Container, Row, Col } from 'reactstrap';
+
 const Home = () => {
-  
   return (
-    <Container className="mt-2">
-    <div>
-      <h1>Bienvenido a la Aplicación de Pesca</h1>
-      {/* Aquí puedes añadir más contenido si lo necesitas */}
-    </div>
+    <Container className="mt-5">
+      <h1 style={{ textAlign: 'center', marginBottom: '40px' }}>Home</h1>
+      <Row>
+        <Col md="12">
+        </Col>
+      </Row>
+    
+      
     </Container>
   );
 };

@@ -1,8 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { ListGroup, ListGroupItem } from 'reactstrap';
-import { Home, Dashboard, ListAlt, Map  } from '@mui/icons-material';
+import { Home, Dashboard, ListAlt, Map   } from '@mui/icons-material';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import { Container } from 'reactstrap';
 const Sidebar = () => {
   const userRole = localStorage.getItem('user_role'); // Obtener el rol desde localStorage
@@ -15,14 +16,16 @@ const Sidebar = () => {
       
       <ListGroup flush>
         <ListGroupItem tag={NavLink} to="/" action>
-          <Home style={{ marginRight: '10px' }} /> Home
+          <Home  style={{ marginRight: '10px' }} /> Home
         </ListGroupItem>
-        
         <ListGroupItem tag={NavLink} to="/dashboard" action>
           <Dashboard style={{ marginRight: '10px' }} /> Dashboard
         </ListGroupItem>
         <ListGroupItem tag={NavLink} to="/mapacaptura" action>
           <Map style={{ marginRight: '10px' }} /> Map
+        </ListGroupItem>
+        <ListGroupItem tag={NavLink} to="/reporte" action>
+          <ReceiptIcon  style={{ marginRight: '10px' }} /> Report
         </ListGroupItem>
         <ListGroupItem tag={NavLink} to="/actividades" action>
           <ListAlt style={{ marginRight: '10px' }} /> Lista de Actividades

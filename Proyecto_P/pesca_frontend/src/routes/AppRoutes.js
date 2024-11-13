@@ -8,10 +8,10 @@ import EditarActividadPesquera from '../pages/crud/EditarActividadPesquera';
 import DetalleActividadPesquera from '../pages/crud/DetalleActividadPesquera';
 import Perfil from '../pages/users/Perfil';
 import Dashboard from '../pages/Dashboard/Dashboard';
-import MapaCaptura from '../pages/Dashboard/MapaCaptura';
+import MapaCaptura from '../pages/MapaCaptura/MapaCaptura';
 import Login from '../pages/login/Login';
 import GestionUsuarios from '../pages/users/GestionUsuarios';
-
+import Reporte from '../pages/reporte/Reporte';
 const AppRoutes = ({ isAuthenticated, userRole, handleLogin }) => {
   return (
     <Routes>
@@ -26,6 +26,8 @@ const AppRoutes = ({ isAuthenticated, userRole, handleLogin }) => {
           <Route path="/editar/:id" element={<EditarActividadPesquera />} />
           <Route path="/detalle/:id" element={<DetalleActividadPesquera />} />
           <Route path="/perfil" element={<Perfil />} />
+          <Route path="/reporte" element={<Reporte/>} />
+
           {userRole === 'admin' ? (
             <Route path="/gestionUser" element={<GestionUsuarios />} />
           ) : (
