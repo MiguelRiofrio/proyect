@@ -10,6 +10,7 @@ urlpatterns = [
     path('mapa_a/', views.obtener_datos_mapa_avistamientos, name='avistamientos_mapa'),
     #path('mapa/', views.obtener_datos_mapa1, name='obtener_datos_mapa'),
     path('generar-reporte/', views.generar_reporte, name='generar_reporte'),
+    path('dashboard/', views.dashboard_data2, name='dashboard-data'),
 
     
 ]

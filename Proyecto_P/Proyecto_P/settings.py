@@ -84,7 +84,7 @@ WSGI_APPLICATION = 'Proyecto_P.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'base_de_datos_1',
+        'NAME': 'actividadpesca',
         'USER': 'Boot',
         'PASSWORD': '1234',
         'HOST': 'localhost',

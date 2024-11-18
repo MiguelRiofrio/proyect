@@ -1,0 +1,21 @@
+.container {
+    max-width: 1200px;
+  }
+  
+  h1 {
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+  }
+  
+  .card {
+    border-radius: 10px;
+  }
+  
+  .card-body h5 {
+    color: #555;
+  }
+  
+  .table th, .table td {
+    text-align: center;
+  }
+  

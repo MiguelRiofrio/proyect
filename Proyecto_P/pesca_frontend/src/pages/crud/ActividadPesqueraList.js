@@ -19,7 +19,7 @@ const ActividadPesqueraList = () => {
   const fetchActividades = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/register/actividades/');
+      const response = await axios.get('http://localhost:8000/api/register/actividad/');
       setActividades(response.data);
       setError(null);
     } catch (error) {
@@ -31,7 +31,7 @@ const ActividadPesqueraList = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/register/actividades/${id}/`);
+      await axios.delete(`http://localhost:8000/api/register/actividad/${id}/`);
       alert('Actividad pesquera eliminada con éxito');
       fetchActividades(); // Recargar actividades después de eliminar
     } catch (error) {
@@ -67,28 +67,28 @@ const ActividadPesqueraList = () => {
             <tr>
               <th>Código de Ingreso</th>
               <th>Embarcación</th>
-              <th>Puerto de Salida</th>
+              <th>Tipo de Arte Pesca</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {actividades.map((actividad) => (
-              <tr key={actividad.codigo_de_ingreso}>
-                <td>{actividad.codigo_de_ingreso}</td>
-                <td>{actividad.embarcacion}</td>
-                <td>{actividad.puerto_de_salida}</td>
+              <tr key={actividad.codigo_actividad}>
+                <td>{actividad.codigo_actividad}</td>
+                <td>{actividad.nombre_embarcacion}</td>
+                <td>{actividad.arte_pesca}</td>
                 <td>
                   <Button
                     color="secondary"
                     className="me-2"
-                    onClick={() => navigate(`/detalle/${actividad.codigo_de_ingreso}`)}
+                    onClick={() => navigate(`/detalle/${actividad.codigo_actividad}`)}
                   >
                     Ver
                   </Button>
                   <Button
                     color="warning"
                     className="me-2"
-                    onClick={() => navigate(`/editar/${actividad.codigo_de_ingreso}`)}
+                    onClick={() => navigate(`/editar/${actividad.codigo_actividad}`)}
                   >
                     Editar
                   </Button>
@@ -110,13 +110,13 @@ const ActividadPesqueraList = () => {
         <ModalHeader toggle={() => toggleModal(null)}>Eliminar Actividad</ModalHeader>
         <ModalBody>
           ¿Está seguro que desea eliminar la actividad pesquera con el código{' '}
-          {selectedActividad?.codigo_de_ingreso}?
+          {selectedActividad?.codigo_actividad}?
         </ModalBody>
         <ModalFooter>
           <Button
             color="danger"
             onClick={() => {
-              handleDelete(selectedActividad.codigo_de_ingreso);
+              handleDelete(selectedActividad.codigo_actividad);
               toggleModal(null);
             }}
           >
