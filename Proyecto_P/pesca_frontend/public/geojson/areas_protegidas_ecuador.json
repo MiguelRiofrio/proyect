@@ -1,0 +1,66 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "nombre": "Reserva Marina de Galápagos",
+          "categoria": "Reserva Marina",
+          "descripcion": "Ubicada en el archipiélago de Galápagos, esta reserva marina protege una biodiversidad única."
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [-91.5, -1.0],
+              [-91.2, -1.0],
+              [-91.2, -1.3],
+              [-91.5, -1.3],
+              [-91.5, -1.0]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "nombre": "Reserva Marina de El Pelado",
+          "categoria": "Reserva Marina",
+          "descripcion": "Protege ecosistemas marinos cercanos a la costa de la provincia de Santa Elena."
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [-80.8, -2.3],
+              [-80.7, -2.3],
+              [-80.7, -2.4],
+              [-80.8, -2.4],
+              [-80.8, -2.3]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "nombre": "Parque Nacional Machalilla",
+          "categoria": "Parque Nacional",
+          "descripcion": "Incluye áreas marinas y terrestres con alta biodiversidad en la provincia de Manabí."
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [-81.2, -1.5],
+              [-81.0, -1.5],
+              [-81.0, -1.7],
+              [-81.2, -1.7],
+              [-81.2, -1.5]
+            ]
+          ]
+        }
+      }
+    ]
+  }
+  

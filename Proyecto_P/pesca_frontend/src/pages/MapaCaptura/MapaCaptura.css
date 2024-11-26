@@ -1,28 +1,14 @@
-.filter-panel-floating {
-  position: fixed;
-  top: 100px;
-  left: 20px;
-  width: 300px;
-  z-index: 1000;
+.slider-button {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
 }
 
-.map-section {
-  margin-left: 320px; /* Ajusta el margen para que no se solape con el filtro */
-  height: 60vh;
+.filter-slider {
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-.card-header {
-  text-align: center;
-  font-size: 1.2rem;
-}
-
-.card-body {
-  padding: 15px;
-}
-
-.spinner-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 60vh;
+.map-container {
+  height: 600px;
+  border-radius: 10px;
 }
