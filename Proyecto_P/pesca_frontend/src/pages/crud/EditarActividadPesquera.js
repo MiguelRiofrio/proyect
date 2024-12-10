@@ -19,7 +19,7 @@ const EditarActividadPesquera = () => {
 
   const fetchActividad = async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/api/register/actividad/${id}/`);
+      const response = await axios.get(`http://localhost:8000/api/actividad_c/${id}/`);
       setActividad(response.data.actividad);
       setLances(response.data.lances || []);
       setIsLoading(false);
@@ -49,7 +49,7 @@ const EditarActividadPesquera = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:8000/api/register/actividad/${id}/`, {
+      await axios.put(`http://localhost:8000/api/actividad/${id}/`, {
         actividad,
         lances,
       });

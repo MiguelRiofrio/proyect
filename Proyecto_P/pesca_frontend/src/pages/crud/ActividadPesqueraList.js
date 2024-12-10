@@ -19,7 +19,7 @@ const ActividadPesqueraList = () => {
   const fetchActividades = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/register/actividad/');
+      const response = await axios.get('http://localhost:8000/api/actividad/');
       setActividades(response.data);
       setError(null);
     } catch (error) {
@@ -31,7 +31,7 @@ const ActividadPesqueraList = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/register/actividad/${id}/`);
+      await axios.delete(`http://localhost:8000/api/actividad/${id}/`);
       alert('Actividad pesquera eliminada con éxito');
       fetchActividades(); // Recargar actividades después de eliminar
     } catch (error) {

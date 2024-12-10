@@ -18,7 +18,7 @@ const DetalleActividadPesquera = () => {
 
   const fetchDetalleActividad = async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/api/register/actividad/${id}/`);
+      const response = await axios.get(`http://localhost:8000/api/actividad_c/${id}/`);
       setActividad(response.data.actividad);
       setLances(response.data.lances || []);
     } catch (error) {

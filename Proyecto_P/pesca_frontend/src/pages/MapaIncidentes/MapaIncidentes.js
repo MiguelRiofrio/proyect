@@ -7,9 +7,9 @@ import { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Slide } from '@mui/material';
 import { FilterList as FilterListIcon, Close as CloseIcon } from '@mui/icons-material';
-import './MapaCaptura.css';
+import './MapaIncidente.css';
 
-const MapaCaptura = () => {
+const MapaIncidentes = () => {
   const [datos, setDatos] = useState([]);
   const [filtro, setFiltro] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
@@ -27,7 +27,7 @@ const MapaCaptura = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/mapa_c/');
+        const response = await fetch('http://localhost:8000/api/mapa/');
         if (!response.ok) throw new Error('Error al obtener los datos del servidor.');
         const data = await response.json();
         setDatos(data);
@@ -122,7 +122,7 @@ const MapaCaptura = () => {
           {/* Mapa */}
           <Card className="shadow mb-4">
             <CardHeader className="bg-primary text-white">
-              <h3 className="mb-0 text-center">Mapa de Capturas </h3>
+              <h3 className="mb-0 text-center">Mapa de Incidenicias</h3>
             </CardHeader>
             <CardBody className="p-0">
               <MapWithMarkers
@@ -153,4 +153,4 @@ const MapaCaptura = () => {
   );
 };
 
-export default MapaCaptura;
+export default MapaIncidentes;

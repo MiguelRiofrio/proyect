@@ -6,11 +6,13 @@ import './Home.css';
 const Home = ({ resumenDatos, totalEspecies, totalObservaciones, especieMasComun }) => {
   const navigate = useNavigate();
 
+
+  
   return (
     <div className="home-container">
       {/* Encabezado */}
       <div className="home-header">
-        <h1>🌊 Bienvenido a la Plataforma de Avistamientos</h1>
+        <h1>🌊 Aplicacion analisis de especies Vulnerables IPIAP</h1>
         <p>
           Descubre y analiza datos sobre las especies marinas en tiempo real. 
           Usa nuestras herramientas interactivas para explorar mapas, gráficos y más.

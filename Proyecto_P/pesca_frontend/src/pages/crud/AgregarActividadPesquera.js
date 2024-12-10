@@ -17,13 +17,9 @@ const AgregarActividadPesquera = () => {
   const [actividad, setActividad] = useState({
     codigo_de_ingreso: '',     // VARCHAR(50) PRIMARY KEY
     puerto_de_salida: '',      // VARCHAR(100)
-    dia: 0,                   // INT
-    mes: 0,                   // INT
-    ano: 0,                   // INT
+    fecha_de_salida: '',                 // INT
     puerto_de_entrada: '',     // VARCHAR(100)
-    dia_entrada: 0,           // INT
-    mes_entrada: 0,           // INT
-    ano_entrada: 0,           // INT
+    fecha_de_salida: '',            // INT
     observador: '',            // VARCHAR(100)
     embarcacion: '',           // VARCHAR(100)
     armador: '',               // VARCHAR(100)
@@ -241,7 +237,7 @@ const AgregarActividadPesquera = () => {
       return;
     }
     try {
-      const actividadResponse = await axios.post('http://localhost:8000/api/actividad-pesquera/', actividad);
+      const actividadResponse = await axios.post('http://localhost:8000/api/actividad/', actividad);
       console.log(actividad); // o el objeto que estés enviando
 
       const actividadGuardada = actividadResponse.data;

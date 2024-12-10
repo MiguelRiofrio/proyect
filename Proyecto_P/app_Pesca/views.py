@@ -1,6 +1,7 @@
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
-
+from rest_framework.decorators import api_view, action
+from rest_framework.views import APIView
+from rest_framework import viewsets,status
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Sum, Count
 from collections import defaultdict
@@ -9,7 +10,119 @@ import io
 import pandas as pd
 from reportlab.pdfgen import canvas
 from .models import Lance, DatosCaptura, Avistamiento, Incidencia
+from django.shortcuts import get_object_or_404
+from .models import (
+    ActividadPesquera, Lance, DatosCaptura, Avistamiento, Incidencia
+)
+from .serializers import (
+    ActividadPesqueraSerializer, LanceSerializer, LanceCercoSerializer,
+    LancePalangreSerializer, LanceArrastreSerializer, DatosCapturaSerializer,
+    AvistamientoSerializer, IncidenciaSerializer
+)
 
+
+#vistas para visualizar todos los datos de una sola actividad
+class ActividadDetalleCompletaView(APIView):
+    """
+    Vista para obtener los detalles de una actividad pesquera, incluyendo todos los lances, capturas, incidencias y avistamientos relacionados.
+    """
+
+    def get(self, request, codigo_actividad):
+        # Obtener la actividad pesquera por código
+        actividad = get_object_or_404(ActividadPesquera, codigo_actividad=codigo_actividad)
+        actividad_serializer = ActividadPesqueraSerializer(actividad)
+
+        # Obtener todos los lances relacionados con la actividad
+        lances = Lance.objects.filter(codigo_actividad=actividad.codigo_actividad)
+        lances_data = []
+
+        for lance in lances:
+            # Procesar latitud y longitud
+            latitud = convertir_coordenadas(
+                lance.latitud_ns, lance.latitud_grados, lance.latitud_minutos
+            )
+            longitud = convertir_coordenadas(
+                lance.longitud_w, lance.longitud_grados, lance.longitud_minutos
+            )
+
+            # Serializar el lance básico y añadir las coordenadas calculadas
+            lance_data = LanceSerializer(lance).data
+            lance_data['latitud'] = latitud
+            lance_data['longitud'] = longitud
+
+            # Identificar el tipo de lance y serializar los detalles
+            if hasattr(lance, 'lancecerco'):
+                lance_tipo = "cerco"
+                detalles = LanceCercoSerializer(lance.lancecerco).data
+            elif hasattr(lance, 'lancepalangre'):
+                lance_tipo = "palangre"
+                detalles = LancePalangreSerializer(lance.lancepalangre).data
+            elif hasattr(lance, 'lancearrastre'):
+                lance_tipo = "arrastre"
+                detalles = LanceArrastreSerializer(lance.lancearrastre).data
+            else:
+                lance_tipo = "desconocido"
+                detalles = {}
+
+            # Obtener capturas asociadas al lance
+            capturas = DatosCaptura.objects.filter(codigo_lance=lance.codigo_lance)
+            capturas_serializer = DatosCapturaSerializer(capturas, many=True)
+
+            # Obtener avistamientos asociados al lance
+            avistamientos = Avistamiento.objects.filter(codigo_lance=lance.codigo_lance)
+            avistamientos_serializer = AvistamientoSerializer(avistamientos, many=True)
+
+            # Obtener incidencias asociadas al lance
+            incidencias = Incidencia.objects.filter(codigo_lance=lance.codigo_lance)
+            incidencias_serializer = IncidenciaSerializer(incidencias, many=True)
+
+            # Añadir todos los detalles del lance
+            lances_data.append({
+                "lance": lance_data,
+                "tipo_lance": lance_tipo,
+                "detalles": detalles,
+                "capturas": capturas_serializer.data,
+                "avistamientos": avistamientos_serializer.data,
+                "incidencias": incidencias_serializer.data
+            })
+
+        # Construir la respuesta completa
+        response_data = {
+            "actividad": actividad_serializer.data,
+            "lances": lances_data
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+#vista para visualizar la lista y crear actividad
+class ActividadPesqueraViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para manejar todas las operaciones CRUD de ActividadPesquera.
+    """
+    queryset = ActividadPesquera.objects.all()
+    serializer_class = ActividadPesqueraSerializer
+
+    # Elimina redundancia al combinar este código con el ViewSet anterior
+    @api_view(['GET', 'POST'])
+    def actividad_pesquera_list(request):
+        """
+        API para listar todas las actividades pesqueras o crear una nueva.
+        """
+        if request.method == 'GET':
+            # Listar actividades
+            actividades = ActividadPesquera.objects.all()
+            serializer = ActividadPesqueraSerializer(actividades, many=True)
+            return Response(serializer.data)
+        
+    # Método para manejar el borrado de una actividad pesquera
+    @action(detail=True, methods=['delete'], url_path='delete')
+    def delete_actividad(self, request, pk=None):
+        try:
+            actividad = ActividadPesquera.objects.get(pk=pk)
+            actividad.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ActividadPesquera.DoesNotExist:
+            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 # Generar Reporte
 def generar_reporte(request):
@@ -103,6 +216,7 @@ def dashboard_data2(request):
         "lances_por_mes": lances_por_mes_resultados,
     }
     return Response(data)
+
 # Dashboard Data
 def dashboard_data(request):
     lances_por_mes = defaultdict(int)
@@ -145,52 +259,22 @@ def dashboard_data(request):
 
     return JsonResponse(data)
 
-
-# Datos del Mapa Genéricos
-def obtener_datos_mapa(request):
-    lances = Lance.objects.all()
-    datos = []
-
-    for lance in lances:
-        try:
-            lat = round(
-                lance.latitud_grados + (lance.latitud_minutos / 60), 4
-            ) * (-1 if lance.latitud_ns.lower() == 's' else 1)
-            lon = round(
-                lance.longitud_grados + (lance.longitud_minutos / 60), 4
-            ) * (-1 if lance.longitud_w.lower() == 'w' else 1)
-
-            capturas = DatosCaptura.objects.filter(codigo_lance=lance)
-            for captura in capturas:
-                datos.append({
-                    'latitud': lat,
-                    'longitud': lon,
-                    'nombre_cientifico': captura.nombre_cientifico,
-                    'total_individuos': captura.total_individuos,
-                })
-        except (AttributeError, TypeError):
-            continue
-
-    return JsonResponse(datos, safe=False)
-
-
 # Datos del Mapa con Avistamientos
-def obtener_datos_mapa_avistamientos(request):
+def obtener_datosA_mapa(request):
     lances = Lance.objects.all()
     datos = []
-
+    estado="desconocido"
     for lance in lances:
         try:
-            lat = round(
-                lance.latitud_grados + (lance.latitud_minutos / 60), 4
-            ) * (-1 if lance.latitud_ns.lower() == 's' else 1)
-            lon = round(
-                lance.longitud_grados + (lance.longitud_minutos / 60), 4
-            ) * (-1 if lance.longitud_w.lower() == 'w' else 1)
-
+            # Calcular la latitud y longitud
+            lat = convertir_coordenadas(lance.latitud_ns,lance.latitud_grados,lance.latitud_minutos)
+            lon = convertir_coordenadas(lance.longitud_w,lance.longitud_grados,lance.longitud_minutos)
+            
+            # Agregar datos de Avistamientos
             avistamientos = Avistamiento.objects.filter(codigo_lance=lance)
             for avistamiento in avistamientos:
                 datos.append({
+                    'tipo': 'avistamiento',
                     'latitud': lat,
                     'longitud': lon,
                     'nombre_cientifico': avistamiento.nombre_cientifico,
@@ -199,7 +283,80 @@ def obtener_datos_mapa_avistamientos(request):
                     'en_reposo': avistamiento.en_reposo,
                     'total_individuos': avistamiento.total_individuos,
                 })
-        except (AttributeError, TypeError):
+
+           
+        except (AttributeError, TypeError) as e:
+            # Puedes registrar el error si necesitas depuración
+            print(f"Error procesando lance {lance.codigo_lance}: {e}")
             continue
 
     return JsonResponse(datos, safe=False)
+
+
+def obtener_datosC_mapa(request):
+    lances = Lance.objects.all()
+    datos = []
+    estado="desconocido"
+    for lance in lances:
+        try:
+            # Calcular la latitud y longitud
+            lat = convertir_coordenadas(lance.latitud_ns,lance.latitud_grados,lance.latitud_minutos)
+            lon = convertir_coordenadas(lance.longitud_w,lance.longitud_grados,lance.longitud_minutos)
+            
+          # Agregar datos de Capturas
+            capturas = DatosCaptura.objects.filter(codigo_lance=lance)
+            for captura in capturas:
+                datos.append({
+                    'tipo': 'captura',
+                    'latitud': lat,
+                    'longitud': lon,
+                    'nombre_cientifico': captura.nombre_cientifico,
+                    'total_peso_lb': captura. total_peso_lb,
+                    'cantidad': captura.total_individuos,
+                })
+           
+        except (AttributeError, TypeError) as e:
+            # Puedes registrar el error si necesitas depuración
+            print(f"Error procesando lance {lance.codigo_lance}: {e}")
+            continue
+
+    return JsonResponse(datos, safe=False)
+
+
+def obtener_datosI_mapa(request):
+    lances = Lance.objects.all()
+    datos = []
+    estado="desconocido"
+    for lance in lances:
+        try:
+            # Calcular la latitud y longitud
+            lat = convertir_coordenadas(lance.latitud_ns,lance.latitud_grados,lance.latitud_minutos)
+            lon = convertir_coordenadas(lance.longitud_w,lance.longitud_grados,lance.longitud_minutos)
+            
+                # Agregar datos de Incidencias
+            incidencias = Incidencia.objects.filter(codigo_lance=lance)
+           
+            datos.append({
+                'tipo': 'incidencia',
+                'latitud': lat,
+                'longitud': lon,
+                
+                })
+           
+        except (AttributeError, TypeError) as e:
+            # Puedes registrar el error si necesitas depuración
+            print(f"Error procesando lance {lance.codigo_lance}: {e}")
+            continue
+
+    return JsonResponse(datos, safe=False)
+
+     
+#funcion para convertir coordenadas
+def convertir_coordenadas(ns, grados, minutos):
+    """
+    Convierte las coordenadas en formato NS/EW, Grados y Minutos a decimal.
+    """
+    decimal = float(grados) + float(minutos) / 60
+    if ns in ['s','w']:  # Si es sur o oeste, debe ser negativo
+        decimal = -decimal
+    return round(decimal, 4) 

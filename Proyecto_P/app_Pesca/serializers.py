@@ -48,3 +48,6 @@ class IncidenciaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Incidencia
         fields = '__all__'
+
+
+
