@@ -1,61 +1,70 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Row, Col, FormGroup, Input, Label } from 'reactstrap';
+import axios from 'axios';
 
 const ActividadForm = ({ actividad, handleChange }) => {
+  const [puertos, setPuertos] = useState([]);
+  const [personas, setPersonas] = useState([]);
+  const [embarcaciones, setEmbarcaciones] = useState([]);
+
+  useEffect(() => {
+    // Cargar datos dinámicos desde la API
+    const fetchData = async () => {
+      try {
+        const [puertosData, personasData, embarcacionesData] = await Promise.all([
+          axios.get('http://localhost:8000/api/crud/puertos/'),
+          axios.get('http://localhost:8000/api/crud/personas/'),
+          axios.get('http://localhost:8000/api/crud/embarcaciones/'),
+        ]);
+
+        setPuertos(puertosData.data);
+        setPersonas(personasData.data);
+        setEmbarcaciones(embarcacionesData.data);
+      } catch (error) {
+        console.error('Error al cargar datos:', error.message);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Filtrar roles para personas
+  const capitanes = personas.filter((p) => p.rol.toLowerCase() === 'capitan');
+  const armadores = personas.filter((p) => p.rol.toLowerCase() === 'armador');
+  const observadores = personas.filter((p) => p.rol.toLowerCase() === 'observador');
+
   return (
-    <>
+    <div>
       <Row>
-        <Col md="2">
+        <Col md="4">
           <FormGroup>
-            <Label for="codigo_de_ingreso"><strong>Código de Ingreso:</strong></Label>
+            <Label>Código de Actividad</Label>
             <Input
               type="text"
-              name="codigo_de_ingreso"
-              value={actividad.codigo_de_ingreso}
+              name="codigo_actividad"
+              value={actividad.codigo_actividad || ''}
               onChange={handleChange}
             />
           </FormGroup>
         </Col>
-        <Col md="2">
+        <Col md="4">
           <FormGroup>
-            <Label for="puerto_de_salida"><strong>Puerto de Salida:</strong></Label>
+            <Label>Fecha de Salida</Label>
             <Input
-              type="text"
-              name="puerto_de_salida"
-              value={actividad.puerto_de_salida}
+              type="date"
+              name="fecha_salida"
+              value={actividad.fecha_salida || ''}
               onChange={handleChange}
             />
           </FormGroup>
         </Col>
-        <Col md="2">
+        <Col md="4">
           <FormGroup>
-            <Label for="dia"><strong>Día de Salida:</strong></Label>
+            <Label>Fecha de Entrada</Label>
             <Input
-              type="number"
-              name="dia"
-              value={actividad.dia}
-              onChange={handleChange}
-            />
-          </FormGroup>
-        </Col>
-        <Col md="2">
-          <FormGroup>
-            <Label for="mes"><strong>Mes de Salida:</strong></Label>
-            <Input
-              type="number"
-              name="mes"
-              value={actividad.mes}
-              onChange={handleChange}
-            />
-          </FormGroup>
-        </Col>
-        <Col md="2">
-          <FormGroup>
-            <Label for="ano"><strong>Año de Salida:</strong></Label>
-            <Input
-              type="number"
-              name="ano"
-              value={actividad.ano}
+              type="date"
+              name="fecha_entrada"
+              value={actividad.fecha_entrada || ''}
               onChange={handleChange}
             />
           </FormGroup>
@@ -63,146 +72,152 @@ const ActividadForm = ({ actividad, handleChange }) => {
       </Row>
 
       <Row>
-        <Col md="2">
+        <Col md="6">
           <FormGroup>
-            <Label for="puerto_de_entrada"><strong>Puerto de Entrada:</strong></Label>
+            <Label>Puerto de Salida</Label>
             <Input
-              type="text"
-              name="puerto_de_entrada"
-              value={actividad.puerto_de_entrada}
+              type="select"
+              name="puerto_salida"
+              value={actividad.puerto_salida || ''}
               onChange={handleChange}
-            />
+            >
+              <option value="">Seleccione</option>
+              {puertos.map((p) => (
+                <option key={p.codigo_puerto} value={p.codigo_puerto}>
+                  {p.nombre_puerto}
+                </option>
+              ))}
+            </Input>
           </FormGroup>
         </Col>
-        <Col md="2">
+        <Col md="6">
           <FormGroup>
-            <Label for="dia_entrada"><strong>Día de Entrada:</strong></Label>
+            <Label>Puerto de Entrada</Label>
             <Input
-              type="number"
-              name="dia_entrada"
-              value={actividad.dia_entrada}
+              type="select"
+              name="puerto_entrada"
+              value={actividad.puerto_entrada || ''}
               onChange={handleChange}
-            />
-          </FormGroup>
-        </Col>
-        <Col md="2">
-          <FormGroup>
-            <Label for="mes_entrada"><strong>Mes de Entrada:</strong></Label>
-            <Input
-              type="number"
-              name="mes_entrada"
-              value={actividad.mes_entrada}
-              onChange={handleChange}
-            />
-          </FormGroup>
-        </Col>
-        <Col md="2">
-          <FormGroup>
-            <Label for="ano_entrada"><strong>Año de Entrada:</strong></Label>
-            <Input
-              type="number"
-              name="ano_entrada"
-              value={actividad.ano_entrada}
-              onChange={handleChange}
-            />
+            >
+              <option value="">Seleccione</option>
+              {puertos.map((p) => (
+                <option key={p.codigo_puerto} value={p.codigo_puerto}>
+                  {p.nombre_puerto}
+                </option>
+              ))}
+            </Input>
           </FormGroup>
         </Col>
       </Row>
 
       <Row>
-        <Col md="2">
+        <Col md="4">
           <FormGroup>
-            <Label for="observador"><strong>Observador:</strong></Label>
+            <Label>Armador</Label>
             <Input
-              type="text"
-              name="observador"
-              value={actividad.observador}
-              onChange={handleChange}
-            />
-          </FormGroup>
-        </Col>
-        <Col md="2">
-          <FormGroup>
-            <Label for="embarcacion"><strong>Embarcación:</strong></Label>
-            <Input
-              type="text"
-              name="embarcacion"
-              value={actividad.embarcacion}
-              onChange={handleChange}
-            />
-          </FormGroup>
-        </Col>
-        <Col md="2">
-          <FormGroup>
-            <Label for="armador"><strong>Armador:</strong></Label>
-            <Input
-              type="text"
+              type="select"
               name="armador"
-              value={actividad.armador}
+              value={actividad.armador || ''}
               onChange={handleChange}
-            />
+            >
+              <option value="">Seleccione</option>
+              {armadores.map((p) => (
+                <option key={p.codigo_persona} value={p.codigo_persona}>
+                  {p.nombre}
+                </option>
+              ))}
+            </Input>
           </FormGroup>
         </Col>
-        <Col md="2">
+        <Col md="4">
           <FormGroup>
-            <Label for="capitan_de_pesca"><strong>Capitán de Pesca:</strong></Label>
+            <Label>Capitán</Label>
             <Input
-              type="text"
-              name="capitan_de_pesca"
-              value={actividad.capitan_de_pesca}
+              type="select"
+              name="capitan"
+              value={actividad.capitan || ''}
               onChange={handleChange}
-            />
+            >
+              <option value="">Seleccione</option>
+              {capitanes.map((p) => (
+                <option key={p.codigo_persona} value={p.codigo_persona}>
+                  {p.nombre}
+                </option>
+              ))}
+            </Input>
           </FormGroup>
         </Col>
-        <Col md="2">
+        <Col md="4">
           <FormGroup>
-            <Label for="matricula"><strong>Matrícula:</strong></Label>
+            <Label>Observador</Label>
             <Input
-              type="text"
-              name="matricula"
-              value={actividad.matricula}
+              type="select"
+              name="observador"
+              value={actividad.observador || ''}
               onChange={handleChange}
-            />
+            >
+              <option value="">Seleccione</option>
+              {observadores.map((p) => (
+                <option key={p.codigo_persona} value={p.codigo_persona}>
+                  {p.nombre}
+                </option>
+              ))}
+            </Input>
           </FormGroup>
         </Col>
       </Row>
 
       <Row>
-        <Col md="2">
+        <Col md="6">
           <FormGroup>
-            <Label for="tipo_de_palangre"><strong>Tipo de Palangre:</strong></Label>
+            <Label>Embarcación</Label>
             <Input
-              type="text"
-              name="tipo_de_palangre"
-              value={actividad.tipo_de_palangre}
+              type="select"
+              name="embarcacion"
+              value={actividad.embarcacion || ''}
               onChange={handleChange}
-            />
+            >
+              <option value="">Seleccione</option>
+              {embarcaciones.map((e) => (
+                <option key={e.codigo_embarcacion} value={e.codigo_embarcacion}>
+                  {e.nombre_embarcacion}
+                </option>
+              ))}
+            </Input>
           </FormGroup>
         </Col>
-        <Col md="2">
+        <Col md="6">
           <FormGroup>
-            <Label for="tipo_de_flota"><strong>Tipo de Flota:</strong></Label>
-            <Input
-              type="text"
-              name="tipo_de_flota"
-              value={actividad.tipo_de_flota}
-              onChange={handleChange}
-            />
-          </FormGroup>
-        </Col>
-        <Col md="2">
-          <FormGroup>
-            <Label for="pesca_objetivo"><strong>Pesca Objetivo:</strong></Label>
+            <Label>Pesca Objetivo</Label>
             <Input
               type="text"
               name="pesca_objetivo"
-              value={actividad.pesca_objetivo}
+              value={actividad.pesca_objetivo || ''}
               onChange={handleChange}
             />
           </FormGroup>
         </Col>
       </Row>
-    </>
+
+      <Row>
+        <Col md="6">
+          <FormGroup>
+            <Label>Tipo de Arte de Pesca</Label>
+            <Input
+              type="select"
+              name="tipo_arte_pesca"
+              value={actividad.tipo_arte_pesca || ''}
+              onChange={handleChange}
+            >
+              <option value="">Seleccione</option>
+              <option value="cerco">Cerco</option>
+              <option value="arrastre">Arrastre</option>
+              <option value="palangre">Palangre</option>
+            </Input>
+          </FormGroup>
+        </Col>
+      </Row>
+    </div>
   );
 };
 

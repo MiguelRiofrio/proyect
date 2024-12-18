@@ -3,343 +3,446 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, TabContent, TabPane, Nav, NavItem, NavLink, Table, Card, CardBody, CardHeader } from 'reactstrap';
 import classnames from 'classnames';
-import './style/DetalleActividad.css'; // Archivo CSS personalizado
+import './style/DetalleActividad.css'; // Archivo CSS para estilos personalizados
 
 const DetalleActividadPesquera = () => {
-  const { id } = useParams(); // Obtiene el ID de la actividad desde la URL
+  const { id } = useParams(); // ID de la actividad
   const [actividad, setActividad] = useState(null);
   const [lances, setLances] = useState([]);
-  const [activeTab, setActiveTab] = useState('1');
+  const [activeTab, setActiveTab] = useState('0'); // Tab activa
   const navigate = useNavigate();
 
+
+  const fetchDetalleActividad = async () => {
+    try {
+      const response = await axios.get(`http://localhost:8000/api/crud/actividades/${id}/details/`);
+      setActividad(response.data);
+      setLances(response.data.lances || []);
+    } catch (error) {
+      console.error('Error al obtener los detalles de la actividad:', error);
+    }
+  };
   useEffect(() => {
     fetchDetalleActividad();
   }, []);
 
-  const fetchDetalleActividad = async () => {
-    try {
-      const response = await axios.get(`http://localhost:8000/api/actividad_c/${id}/`);
-      setActividad(response.data.actividad);
-      setLances(response.data.lances || []);
-    } catch (error) {
-      console.error('Error al obtener los detalles de la actividad pesquera:', error);
-    }
-  };
-
-  const toggle = (tab) => {
+  const toggleTab = (tab) => {
     if (activeTab !== tab) {
       setActiveTab(tab);
     }
   };
 
-  const renderDetallesLance = (lance) => {
-    if (lance.tipo_lance === 'palangre') {
-      return (
+  const renderLanceDetalles = (lance) => {
+    return (
+      <>
+      <h5>Detalles Generales del Lance</h5>
+      <Table bordered hover responsive className="table-striped text-center align-middle">
+        <thead>
+          <tr>
+            <th rowSpan={2}>Número <br />de Lance</th>
+            <th rowSpan={2}>Fecha <br />de Calado</th>
+            <th rowSpan={2}>Hora <br />de Calado</th>
+            <th rowSpan={2}>Profundidad<br /> del Suelo Marino</th>
+            <th colSpan={2}>Coordenadas</th>
+          </tr>
+          <tr>
+            <th>Latitud</th>
+            <th>Longitud</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{lance.numero_lance}</td>
+            <td>{lance.calado_fecha}</td>
+            <td>{lance.calado_hora}</td>
+            <td>{lance.profundidad_suelo_marino}</td>
+            <td>
+              {lance.coordenadas
+                ? `${lance.coordenadas.latitud}°`
+                : 'Sin Latitud'}
+            </td>
+            <td>
+              {lance.coordenadas
+                ? `${lance.coordenadas.longitud}°`
+                : 'Sin Longitud'}
+            </td>
+          </tr>
+        </tbody>
+      </Table>
+    
+      {/* Detalles Específicos del Lance */}
+      {lance.detalles_palangre && (
         <>
-          <h5 className="mt-4">Detalles del Lance </h5>
+          <h5>Detalles Específicos del Lance</h5>
           <Table bordered>
-            <thead>
-              <tr>
-                <th>Carnada 1</th>
-                <th>Porcentaje Carnada 1</th>
-                <th>Carnada 2</th>
-                <th>Porcentaje Carnada 2</th>
-                <th>Tipo de Anzuelo</th>
-                <th>Cantidad de Anzuelos</th>
-                <th>Línea Madre (m)</th>
-                <th>Profundidad del Anzuelo (m)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{lance.detalles?.carnada1 || '-'}</td>
-                <td>{lance.detalles?.porcentaje_carnada1 || '-'}</td>
-                <td>{lance.detalles?.carnada2 || '-'}</td>
-                <td>{lance.detalles?.porcentaje_carnada2 || '-'}</td>
-                <td>{lance.detalles?.tipo_anzuelo || '-'}</td>
-                <td>{lance.detalles?.cantidad_anzuelos || '-'}</td>
-                <td>{lance.detalles?.linea_madre_metros || '-'}</td>
-                <td>{lance.detalles?.profundidad_anzuelo_metros || '-'}</td>
-              </tr>
-            </tbody>
+          <thead>
+            <tr>
+              <th>Tamaño del Anzuelo</th>
+              <th>Cantidad de Anzuelos</th>
+              <th>Línea Madre (m)</th>
+              <th>Profundidad del Anzuelo (m)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{lance.detalles_palangre.tamano_anzuelo}</td>
+              <td>{lance.detalles_palangre.cantidad_anzuelos}</td>
+              <td>{lance.detalles_palangre.linea_madre_metros}</td>
+              <td>{lance.detalles_palangre.profundidad_anzuelo_metros}</td>
+            </tr>
+          </tbody>
           </Table>
+    
+          {/* Detalles de Carnadas si existen */}
+          {lance.detalles_palangre.carnadas && lance.detalles_palangre.carnadas.length > 0 && (
+            <>
+              <h5>Detalles de Carnadas</h5>
+              <Table bordered hover responsive className="table-striped text-center align-middle">
+                <thead>
+                  <tr>
+                    <th>Nombre de Carnada</th>
+                    <th>Porcentaje de Carnada</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lance.detalles_palangre.carnadas.map((carnada, index) => (
+                    <tr key={index}>
+                      <td>{carnada.nombre_carnada}</td>
+                      <td>{carnada.porcentaje_carnada}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </>
+          )}
         </>
-      );
-    } else if (lance.tipo_lance === 'cerco') {
-      return (
-        <>
-          <h5 className="mt-4">Detalles del Lance </h5>
-          <Table bordered>
-            <thead>
-              <tr>
-                <th>Altura de la Red</th>
-                <th>Longitud de la Red</th>
-                <th>Malla Cabecero</th>
-                <th>Malla Cuerpo</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{lance.detalles?.altura_red || '-'}</td>
-                <td>{lance.detalles?.longitud_red || '-'}</td>
-                <td>{lance.detalles?.malla_cabecero || '-'}</td>
-                <td>{lance.detalles?.malla_cuerpo || '-'}</td>
-              </tr>
-            </tbody>
-          </Table>
-        </>
-      );
-    } else if (lance.tipo_lance === 'arrastre') {
-      return (
-        <>
-          <h5 className="mt-4">Detalles del Lance </h5>
-          <Table bordered>
-            <thead>
-              <tr>
-                <th>TED</th>
-                <th>Copo</th>
-                <th>Túnel</th>
-                <th>Pico</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{lance.detalles?.ted ? 'Sí' : 'No'}</td>
-                <td>{lance.detalles?.copo || '-'}</td>
-                <td>{lance.detalles?.tunel || '-'}</td>
-                <td>{lance.detalles?.pico || '-'}</td>
-              </tr>
-            </tbody>
-          </Table>
-        </>
-      );
-    }
-    return <p>No hay detalles disponibles para este tipo de lance.</p>;
+      )}
+    
+    
+
+        {/* Datos de Capturas */}
+        {lance.capturas && lance.capturas.length > 0 && (
+          <>
+            <h5>Capturas</h5>
+            <Table bordered>
+              <thead>
+                <tr>
+                  <th>Especie</th>
+                  <th>Individuos<br/> Retenidos</th>
+                  <th>Individuos<br/>  Descartados</th>
+                  <th>Individuos<br/>  Total</th>
+                  <th>Peso<br/>  Retenido (kg)</th>
+                  <th>Peso<br/>  Descartado (kg)</th>
+                  <th>Peso<br/>  Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lance.capturas.map((captura, index) => (
+                  <tr key={index}>
+                    <td>{captura.especie.nombre_cientifico}</td>
+                    <td>{captura.individuos_retenidos}</td>
+                    <td>{captura.individuos_descarte}</td>
+                    <td>{captura.individuos_retenidos-captura.individuos_descarte}</td>
+                    <td>{captura.peso_retenido}</td>
+                    <td>{captura.peso_descarte}</td>
+                    <td>{captura.peso_retenido-captura.peso_descarte}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </>
+        )}
+
+        {/* Avistamientos */}
+        {lance.avistamientos && lance.avistamientos.length > 0 && (
+          <>
+            <h5>Avistamientos</h5>
+            <Table bordered>
+              <thead>
+                <tr>
+                  <th>Especie</th>
+                  <th>Grupos</th>
+                  <th>Alimentándose</th>
+                  <th>Deambulando</th>
+                  <th>En Reposo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lance.avistamientos.map((avistamiento, index) => (
+                  <tr key={index}>
+                    <td>{avistamiento.especie.nombre_cientifico}</td>
+                    <td>{avistamiento.grupos_avi_int}</td>
+                    <td>{avistamiento.alimentandose}</td>
+                    <td>{avistamiento.deambulando}</td>
+                    <td>{avistamiento.en_reposo}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </>
+        )}
+
+        {/* Incidencias */}
+        {lance.incidencias && lance.incidencias.length > 0 && (
+          <>
+            <h5 className="mt-4">Incidencias</h5>
+            <Table bordered hover responsive className="table-striped text-center align-middle">
+              <thead>
+                <tr>
+                  <th>Especie</th>
+                  <th>Grupos</th>
+                  <th>Heridas Graves</th>
+                  <th>Heridas Leves</th>
+                  <th>Muertos</th>
+                  <th>Total Individuos</th>
+                  <th>Observaciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lance.incidencias.map((incidencia, index) => (
+                  <>
+                    {/* Fila principal de Incidencia */}
+                    <tr key={index}>
+                      <td>{incidencia.especie?.nombre_cientifico || "Sin Especie"}</td>
+                      <td>{incidencia.grupos_avi_int}</td>
+                      <td>{incidencia.herida_grave}</td>
+                      <td>{incidencia.herida_leve}</td>
+                      <td>{incidencia.muerto}</td>
+                      <td>{incidencia.Totalindividuos}</td>
+                      <td>{incidencia.observacion || "Sin Observación"}</td>
+                    </tr>
+
+                    {/* Detalles adicionales alineados (solo si existen) */}
+                    {incidencia.detalles_aves && (
+                      <tr>
+                        <td colSpan="7">
+                          <Table bordered hover responsive>
+                            <thead>
+                              <tr>
+                                <th colSpan="3" className="text-center bg-light">Interacion con el Aves</th>
+                              </tr>
+                              <tr>
+                                <th>Pico</th>
+                                <th>Patas</th>
+                                <th>Alas</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>{incidencia.detalles_aves.aves_pico}</td>
+                                <td>{incidencia.detalles_aves.aves_patas}</td>
+                                <td>{incidencia.detalles_aves.aves_alas}</td>
+                              </tr>
+                            </tbody>
+                          </Table>
+                        </td>
+                      </tr>
+                    )}
+                    {/* Tabla de Detalles de tortugas */}
+                    {incidencia.detalles_tortugas && (
+                      <tr>
+                        <td colSpan="7">
+                          <Table bordered hover responsive>
+                            <thead>
+                              <tr>
+                                <th colSpan="3" className="text-center bg-light">Interacion con el Tortugas</th>
+                              </tr>
+                              <tr>
+                                <th>Pico</th>
+                                <th>Cuerpo</th>
+                                <th>Aleta</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>{incidencia.detalles_tortugas.tortugas_pico}</td>
+                                <td>{incidencia.detalles_tortugas.tortugas_cuerpo}</td>
+                                <td>{incidencia.detalles_tortugas.tortugas_aleta}</td>
+                              </tr>
+                            </tbody>
+                          </Table>
+                        </td>
+                      </tr>
+                    )}
+                    {/* Tabla de Detalles de mamiferos */}
+                    {incidencia.detalles_mamiferos && (
+                      <tr>
+                        <td colSpan="7">
+                          <Table bordered hover responsive>
+                            <thead>
+                              <tr>
+                                <th colSpan="3" className="text-center bg-light">Interacion con el Mamíferos</th>
+                              </tr>
+                              <tr>
+                                <th>Hocico</th>
+                                <th>Cuello</th>
+                                <th>Cuerpo</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>{incidencia.detalles_mamiferos.mamiferos_hocico}</td>
+                                <td>{incidencia.detalles_mamiferos.mamiferos_cuello}</td>
+                                <td>{incidencia.detalles_mamiferos.mamiferos_cuerpo}</td>
+                              </tr>
+                            </tbody>
+                          </Table>
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Tabla de Detalles de Palangre */}
+                    {incidencia.detalles_Incpalangre && (
+                      <tr>
+                        <td colSpan="7">
+                          <Table bordered hover responsive>
+                            <thead>
+                              <tr>
+                                <th colSpan="4" className="text-center ">Interacion con el Palangre</th>
+                              </tr>
+                              <tr>
+                                <th>Orinque</th>
+                                <th>Reinal</th>
+                                <th>Anzuelo</th>
+                                <th>Línea Madre</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>{incidencia.detalles_Incpalangre.palangre_orinque}</td>
+                                <td>{incidencia.detalles_Incpalangre.palangre_reinal}</td>
+                                <td>{incidencia.detalles_Incpalangre.palangre_anzuelo}</td>
+                                <td>{incidencia.detalles_Incpalangre.palangre_linea_madre}</td>
+                              </tr>
+                            </tbody>
+                          </Table>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </Table>
+          </>
+        )}
+      </>
+    );
   };
 
   return (
-    <div className="container mt-5 detalle-actividad">
+    <div className="container mt-5">
       <h1 className="text-center mb-4">Detalle de Actividad Pesquera</h1>
 
       {actividad && (
         <>
-          <Card className="mb-5 shadow">
-            <CardHeader className="bg-primary text-white">
-              <h3 className="mb-0">Detalles de la Actividad</h3>
+          {/* Card con Detalles de la Actividad */}
+          <Card className="mb-5 shadow-lg border-0 rounded">
+            <CardHeader className="bg-dark text-white text-center p-3">
+              <h4 className="mb-0">Detalles de la Actividad</h4>
             </CardHeader>
-            <CardBody>
-              <Table className="table-bordered table-hover">
-                <tbody>
-                  <tr>
-                    <th>Código de Actividad</th>
-                    <td>{actividad.codigo_actividad}</td>
-                  </tr>
+            <CardBody className="bg-light">
+              <Table bordered hover responsive className="table-striped text-center align-middle">
+                <thead>
                   <tr>
                     <th>Fecha de Salida</th>
-                    <td>{actividad.fecha_salida}</td>
-                  </tr>
-                  <tr>
                     <th>Puerto de Salida</th>
-                    <td>{actividad.puerto_salida}</td>
-                  </tr>
-                  <tr>
                     <th>Fecha de Entrada</th>
-                    <td>{actividad.fecha_entrada}</td>
-                  </tr>
-                  <tr>
                     <th>Puerto de Entrada</th>
-                    <td>{actividad.puerto_entrada}</td>
                   </tr>
+                </thead>
+                <tbody>
                   <tr>
-                    <th>Nombre del Armador</th>
-                    <td>{actividad.nombre_armador}</td>
+                    <td>{actividad.fecha_salida}</td>
+                    <td>{actividad.puerto_salida?.nombre}</td>
+                    <td>{actividad.fecha_entrada}</td>
+                    <td>{actividad.puerto_entrada?.nombre}</td>
                   </tr>
-                  <tr>
-                    <th>Nombre del Capitán</th>
-                    <td>{actividad.nombre_capitan}</td>
-                  </tr>
+                </tbody>
+                <thead>
                   <tr>
                     <th>Embarcación</th>
-                    <td>{actividad.nombre_embarcacion}</td>
+                    <th>Capitán</th>
+                    <th>Armador</th>
+                    <th>Observador</th>
                   </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{actividad.embarcacion?.nombre_embarcacion}</td>
+                    <td>{actividad.capitan?.nombre}</td>
+                    <td>{actividad.armador?.nombre}</td>
+                    <td>{actividad.observador?.nombre}</td>
+                    
+                  </tr>
+                </tbody>
+                <thead>
                   <tr>
                     <th>Matrícula</th>
-                    <td>{actividad.matricula}</td>
-                  </tr>
-                  <tr>
-                    <th>Observador</th>
-                    <td>{actividad.observador}</td>
-                  </tr>
-                  <tr>
+                    <th>Tipo de Arte</th>
                     <th>Pesca Objetivo</th>
-                    <td>{actividad.pesca_objetivo}</td>
+                    <th>Ingresado por</th>
                   </tr>
+                </thead>
+                <tbody>
                   <tr>
-                    <th>Arte de Pesca</th>
-                    <td>{actividad.arte_pesca}</td>
+                    <td>{actividad.embarcacion?.Matricula}</td>
+                    <td>{actividad.tipo_arte_pesca}</td>
+                    <td>{actividad.pesca_objetivo}</td>
+                    <td>cochito</td>
                   </tr>
                 </tbody>
               </Table>
             </CardBody>
           </Card>
 
-          {lances.length > 0 ? (
-            <div>
-              <h3 className="text-center">Lances</h3>
-              <Nav tabs className="mb-3">
-                {lances.map((lance, index) => (
-                  <NavItem key={lance.lance.codigo_lance}>
-                    <NavLink
-                      className={classnames({ active: activeTab === `lance-${index + 1}` })}
-                      onClick={() => toggle(`lance-${index + 1}`)}
-                    >
-                      Lance {index + 1} 
-                    </NavLink>
-                  </NavItem>
-                ))}
+          {/* Pestañas de Lances */}
+          {lances.length > 0 && (
+            <div className="mt-4">
+              {/* Ordenar los lances por numero_lance antes de renderizarlos */}
+              <Nav tabs className="custom-tabs mb-3">
+                {lances
+                  .sort((a, b) => a.numero_lance - b.numero_lance) // Orden ascendente
+                  .map((lance, index) => (
+                    <NavItem key={index}>
+                      <NavLink
+                        className={classnames("fw-bold", {
+                          active: activeTab === `${index}`,
+                        })}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => toggleTab(`${index}`)}
+                      >
+                        Lance {lance.numero_lance} {/* Mostrar el valor real del número de lance */}
+                      </NavLink>
+                    </NavItem>
+                  ))}
               </Nav>
 
-              <TabContent activeTab={activeTab}>
-                {lances.map((lance, index) => (
-                  <TabPane key={lance.lance.codigo_lance} tabId={`lance-${index + 1}`}>
-                    <Card className="shadow mb-4">
-                      <CardHeader className="bg-secondary text-white">
-                        <h4 className="mb-0">Lance {index + 1} - {lance.tipo_lance.toUpperCase()}</h4>
-                      </CardHeader>
-                      <CardBody>
-                        <Table bordered>
-                          <thead className="table-light">
-                            <tr>
-                              <th>Número de Lance</th>
-                              <th>Calado Fecha</th>
-                              <th>Calado Hora</th>
-                              <th>Latitud</th>
-                              <th>Longitud</th>
-                              <th>Profundidad</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr>
-                              <td>{lance.lance.numero_lance}</td>
-                              <td>{lance.lance.calado_fecha}</td>
-                              <td>{lance.lance.calado_hora}</td>
-                              <td>{lance.lance.latitud}</td>
-                              <td>{lance.lance.longitud}</td>
-                              <td>{lance.lance.profundidad_suelo_marino}</td>
-                            </tr>
-                          </tbody>
-                        </Table>
-                        {renderDetallesLance(lance)}
-
-                      </CardBody>
-                    </Card>
-
-                    {/* Capturas */}
-                    {lance.capturas.length > 0 && (
-                      <Card className="shadow mb-4">
-                        <CardHeader className="bg-info text-white">
-                          <h5 className="mb-0">Capturas</h5>
-                        </CardHeader>
-                        <CardBody>
-                          <Table bordered>
-                            <thead className="table-light">
-                              <tr>
-                                <th>Nombre Científico</th>
-                                <th>Peso Retenido</th>
-                                <th>Peso Descartado</th>
-                                <th>Total Individuos</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {lance.capturas.map((captura, index) => (
-                                <tr key={index}>
-                                  <td>{captura.nombre_cientifico}</td>
-                                  <td>{captura.peso_retenido}</td>
-                                  <td>{captura.peso_descartado}</td>
-                                  <td>{captura.total_individuos}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </Table>
-                        </CardBody>
-                      </Card>
-                    )}
-
-                    {/* Avistamientos */}
-                    {lance.avistamientos.length > 0 && (
-                      <Card className="shadow mb-4">
-                        <CardHeader className="bg-success text-white">
-                          <h5 className="mb-0">Avistamientos</h5>
-                        </CardHeader>
-                        <CardBody>
-                          <Table bordered>
-                            <thead className="table-light">
-                              <tr>
-                                <th>Nombre Científico</th>
-                                <th>Total Individuos</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {lance.avistamientos.map((avistamiento, index) => (
-                                <tr key={index}>
-                                  <td>{avistamiento.nombre_cientifico}</td>
-                                  <td>{avistamiento.total_individuos}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </Table>
-                        </CardBody>
-                      </Card>
-                    )}
-
-                    {/* Incidencias */}
-                    {lance.incidencias.length > 0 && (
-                      <Card className="shadow mb-4">
-                        <CardHeader className="bg-danger text-white">
-                          <h5 className="mb-0">Incidencias</h5>
-                        </CardHeader>
-                        <CardBody>
-                          <Table bordered>
-                            <thead className="table-light">
-                              <tr>
-                                <th>Nombre Científico</th>
-                                <th>Heridas Graves</th>
-                                <th>Heridas Leves</th>
-                                <th>Muertos</th>
-                                <th>Total Individuos</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {lance.incidencias.map((incidencia, index) => (
-                                <tr key={index}>
-                                  <td>{incidencia.nombre_cientifico}</td>
-                                  <td>{incidencia.herida_grave}</td>
-                                  <td>{incidencia.herida_leve}</td>
-                                  <td>{incidencia.muerto}</td>
-                                  <td>{incidencia.total_individuos}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </Table>
-                        </CardBody>
-                      </Card>
-                    )}
-                  </TabPane>
-                ))}
+              {/* Contenido de las Pestañas */}
+              <TabContent activeTab={activeTab} className="border rounded bg-white shadow-sm">
+                {lances
+                  .sort((a, b) => a.numero_lance - b.numero_lance) // Asegurar orden también aquí
+                  .map((lance, index) => (
+                    <TabPane key={index} tabId={`${index}`} className="p-3">
+                      <div className="p-3 border rounded bg-light">
+                        {renderLanceDetalles(lance)}
+                      </div>
+                    </TabPane>
+                  ))}
               </TabContent>
             </div>
-          ) : (
-            <p className="text-center mt-4">No hay lances disponibles para esta actividad.</p>
           )}
 
-          <div className="text-center">
-            <Button color="secondary" onClick={() => navigate('/actividades')}>
+
+          {/* Botón para Volver */}
+          <div className="text-center mt-4">
+            <Button color="secondary" onClick={() => navigate('/actividadeslist')}>
               Volver a la Lista
             </Button>
           </div>
         </>
       )}
     </div>
+
   );
 };
 

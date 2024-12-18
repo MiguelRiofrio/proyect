@@ -1,0 +1,48 @@
+/* Contenedor del listado */
+.list-card {
+    margin: 20px auto;
+    max-width: 1000px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+  }
+  
+  /* Encabezado */
+  .list-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #007bff;
+    color: white;
+    padding: 15px;
+    border-bottom: 1px solid #ccc;
+    font-size: 1.5em;
+  }
+  
+  /* Botones de acción */
+  .action-button {
+    margin-right: 5px;
+    border-radius: 5px;
+  }
+  
+  /* Spinner */
+  .text-center p {
+    margin-top: 10px;
+    color: #555;
+  }
+  
+  /* Tabla */
+  table {
+    margin-top: 15px;
+  }
+  
+  table th {
+    background-color: #f8f9fa;
+    text-align: center;
+  }
+  
+  table td {
+    text-align: center;
+  }
+  

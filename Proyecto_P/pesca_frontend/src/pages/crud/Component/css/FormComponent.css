@@ -1,0 +1,48 @@
+/* Estilo general del formulario */
+.form-card {
+    margin: 20px auto;
+    max-width: 600px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+  }
+  
+  /* Encabezado */
+  .form-card-header {
+    background-color: #007bff;
+    color: white;
+    padding: 15px;
+    border-bottom: 1px solid #ccc;
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+  }
+  
+  /* Campos del formulario */
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .form-input {
+    border-radius: 4px;
+    padding: 10px;
+    border: 1px solid #ccc;
+  }
+  
+  /* Botones */
+  .form-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  
+  .form-button {
+    width: 48%;
+  }
+  
+  .cancel-button {
+    background-color: #6c757d;
+    border: none;
+  }
+  

@@ -1,151 +1,141 @@
 from django.db import models
 
-# Tabla: ActividadPesquera
+class TipoCarnada(models.Model):
+    codigo_tipo_carnada = models.IntegerField(primary_key=True, default=0)
+    nombre_carnada = models.CharField(max_length=100, default="Sin nombre")
+
+class Puerto(models.Model):
+    codigo_puerto = models.IntegerField( primary_key=True, default=0)
+    nombre_puerto = models.CharField(max_length=100, unique=True, default="Sin nombre")
+
+class Persona(models.Model):
+    codigo_persona = models.IntegerField(primary_key=True, default=0)
+    nombre = models.CharField(max_length=100, default="Sin nombre")
+    rol = models.CharField(max_length=50, default="Sin rol")
+
+class Embarcacion(models.Model):
+    codigo_embarcacion = models.IntegerField( primary_key=True, default=0)
+    nombre_embarcacion = models.CharField(max_length=100, default="Sin nombre")
+    matricula = models.CharField(max_length=50, default="Sin matrícula")
+
+class Coordenadas(models.Model):
+    codigo_coordenadas = models.IntegerField( primary_key=True, default=0)
+    latitud_ns = models.CharField(max_length=1, default="N")
+    latitud_grados = models.IntegerField(default=0)
+    latitud_minutos = models.DecimalField(max_digits=10,decimal_places=3,default=0.00)
+    longitud_w = models.CharField(max_length=1, default="W")
+    longitud_grados = models.IntegerField(default=0)
+    longitud_minutos = models.DecimalField(max_digits=10,decimal_places=3,default=0.00)
+
+class Especie(models.Model):
+    codigo_especie = models.IntegerField( primary_key=True, default=0)
+    taxa = models.CharField(max_length=100, null=True, blank=True, default="Sin taxa")
+    genero = models.CharField(max_length=100, null=True, blank=True, default="Sin género")
+    especie = models.CharField(max_length=100, null=True, blank=True, default="Sin especie")
+    nombre_cientifico = models.CharField(max_length=150, null=True, blank=True, default="Sin nombre científico")
+    nombre_comun = models.CharField(max_length=150, null=True, blank=True, default="Sin nombre común")
+
 class ActividadPesquera(models.Model):
-    codigo_actividad = models.CharField(max_length=100, primary_key=True, db_column='CodigoActividad')
-    fecha_salida = models.DateField(db_column='FechaSalida')
-    puerto_salida = models.CharField(max_length=100, db_column='PuertoSalida')
-    fecha_entrada = models.DateField(db_column='FechaEntrada')
-    puerto_entrada = models.CharField(max_length=100, db_column='PuertoEntrada')
-    nombre_armador = models.CharField(max_length=100, db_column='NombreArmador')
-    nombre_capitan = models.CharField(max_length=100, db_column='NombreCapitan')
-    nombre_embarcacion = models.CharField(max_length=100, db_column='NombreEmbarcacion')
-    matricula = models.CharField(max_length=50, db_column='Matricula')
-    observador = models.CharField(max_length=100, db_column='Observador')
-    pesca_objetivo = models.CharField(max_length=50, db_column='PescaObjetivo')
-    arte_pesca = models.CharField(max_length=20, choices=[('Cerco', 'Cerco'), ('Palangre', 'Palangre'), ('Arrastre', 'Arrastre')], db_column='ArtePesca')
+    codigo_actividad = models.CharField(max_length=50, primary_key=True, default="default_actividad")
+    fecha_salida = models.DateField(default="2000-01-01")
+    fecha_entrada = models.DateField(default="2000-01-01")
+    puerto_salida = models.ForeignKey(Puerto, related_name="salidas", on_delete=models.CASCADE, null=True, default=None)
+    puerto_entrada = models.ForeignKey(Puerto, related_name="entradas", on_delete=models.CASCADE, null=True, default=None)
+    armador = models.ForeignKey(Persona, related_name="armador", on_delete=models.CASCADE, null=True, blank=True, default=None)
+    capitan = models.ForeignKey(Persona, related_name="capitan", on_delete=models.CASCADE, null=True, default=None)
+    observador = models.ForeignKey(Persona, related_name="observador", on_delete=models.CASCADE, null=True, default=None)
+    embarcacion = models.ForeignKey(Embarcacion, on_delete=models.CASCADE, null=True, default=None)
+    tipo_arte_pesca = models.CharField(max_length=50, null=True, default="Sin tipo de arte")
+    pesca_objetivo = models.CharField(max_length=100, null=True, blank=True, default="Sin objetivo")
 
-    class Meta:
-        managed = False
-        db_table = 'actividadpesquera'
-
-
-# Tabla: Lance
 class Lance(models.Model):
-    codigo_lance = models.CharField(max_length=100, primary_key=True, db_column='CodigoLance')
-    codigo_actividad = models.ForeignKey(ActividadPesquera, on_delete=models.CASCADE, db_column='CodigoActividad')
-    numero_lance = models.IntegerField(db_column='NumeroLance')
-    calado_fecha = models.DateField(db_column='CaladoFecha')
-    calado_hora = models.TimeField(db_column='CaladoHora')
-    latitud_ns = models.CharField(max_length=1, blank=True, null=True, db_column='Latitud_NS')
-    latitud_grados = models.IntegerField(blank=True, null=True, db_column='Latitud_Grados')
-    latitud_minutos = models.DecimalField(max_digits=5, decimal_places=3, blank=True, null=True, db_column='Latitud_Minutos')
-    longitud_w = models.CharField(max_length=1, blank=True, null=True, db_column='Longitud_W')
-    longitud_grados = models.IntegerField(blank=True, null=True, db_column='Longitud_Grados')
-    longitud_minutos = models.DecimalField(max_digits=5, decimal_places=3, blank=True, null=True, db_column='Longitud_Minutos')
-    profundidad_suelo_marino = models.DecimalField(max_digits=5, decimal_places=2, db_column='ProfundidadSueloMarino')
+    codigo_lance = models.CharField(max_length=50, primary_key=True, default="default_lance")
+    actividad = models.ForeignKey(ActividadPesquera, on_delete=models.CASCADE, null=True, default=None)
+    coordenadas = models.ForeignKey(Coordenadas, on_delete=models.CASCADE, null=True, default=None)
+    numero_lance = models.IntegerField(default=0)
+    calado_fecha = models.DateField(default="2000-01-01")
+    calado_hora = models.TimeField(default="00:00:00")
+    profundidad_suelo_marino = models.FloatField(default=0.0)
 
-    class Meta:
-        managed = False
-        db_table = 'lance'
-
-
-# Tabla: LanceCerco
-class LanceCerco(models.Model):
-    codigo_lance = models.OneToOneField(Lance, on_delete=models.CASCADE, primary_key=True, db_column='CodigoLance')
-    altura_red = models.DecimalField(max_digits=7, decimal_places=2, db_column='AlturaRed')
-    longitud_red = models.DecimalField(max_digits=7, decimal_places=2, db_column='LongitudRed')
-    malla_cabecero = models.DecimalField(max_digits=5, decimal_places=2, db_column='MallaCabecero')
-    malla_cuerpo = models.DecimalField(max_digits=5, decimal_places=2, db_column='MallaCuerpo')
-
-    class Meta:
-        managed = False
-        db_table = 'lancecerco'
-
-
-# Tabla: LancePalangre
 class LancePalangre(models.Model):
-    codigo_lance = models.OneToOneField(Lance, on_delete=models.CASCADE, primary_key=True, db_column='CodigoLance')
-    carnada1 = models.CharField(max_length=100, blank=True, null=True, db_column='Carnada1')
-    porcentaje_carnada1 = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, db_column='PorcentajeCarnada1')
-    carnada2 = models.CharField(max_length=100, blank=True, null=True, db_column='Carnada2')
-    porcentaje_carnada2 = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, db_column='PorcentajeCarnada2')
-    tipo_anzuelo = models.CharField(max_length=50, blank=True, null=True, db_column='TipoAnzuelo')
-    tamano_anzuelo = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, db_column='TamanoAnzuelo')
-    cantidad_anzuelos = models.IntegerField(blank=True, null=True, db_column='CantidadAnzuelos')
-    linea_madre_metros = models.DecimalField(max_digits=7, decimal_places=2, blank=True, null=True, db_column='LineaMadreMetros')
-    profundidad_anzuelo_metros = models.DecimalField(max_digits=7, decimal_places=2, blank=True, null=True, db_column='ProfundidadAnzueloMetros')
+    codigo_lance = models.OneToOneField(Lance, on_delete=models.CASCADE, primary_key=True, default=None)
+    Tipo = models.CharField(max_length=3, default="N")
+    tamano_anzuelo = models.FloatField(default=0.0)
+    cantidad_anzuelos = models.IntegerField(default=0)
+    linea_madre_metros = models.FloatField(default=0.0)
+    profundidad_anzuelo_metros = models.FloatField(default=0.0)
 
-    class Meta:
-        managed = False
-        db_table = 'lancepalangre'
-
-
-# Tabla: LanceArrastre
 class LanceArrastre(models.Model):
-    codigo_lance = models.OneToOneField(Lance, on_delete=models.CASCADE, primary_key=True, db_column='CodigoLance')
-    ted = models.BooleanField(db_column='TED')
-    copo = models.IntegerField(blank=True, null=True, db_column='Copo')
-    tunel = models.IntegerField(blank=True, null=True, db_column='Tunel')
-    pico = models.IntegerField(blank=True, null=True, db_column='Pico')
+    codigo_lance = models.OneToOneField(Lance, on_delete=models.CASCADE, primary_key=True, default=None)
+    ted = models.BooleanField(default=False)
+    copo = models.IntegerField(default=0)
+    tunel = models.IntegerField(default=0)
+    pico = models.IntegerField(default=0)
 
-    class Meta:
-        managed = False
-        db_table = 'lancearrastre'
+class LanceCerco(models.Model):
+    codigo_lance = models.OneToOneField(Lance, on_delete=models.CASCADE, primary_key=True, default=None)
+    altura_red = models.FloatField(default=0.0)
+    longitud_red = models.FloatField(default=0.0)
+    malla_cabecero = models.FloatField(default=0.0)
+    malla_cuerpo = models.FloatField(default=0.0)
 
+class LancePalangreCarnadas(models.Model):
+    codigo_carnada = models.IntegerField(primary_key=True, default=0)
+    codigo_lance_palangre = models.ForeignKey(LancePalangre, on_delete=models.CASCADE, null=True, default=None)
+    codigo_tipo_carnada = models.ForeignKey(TipoCarnada, on_delete=models.CASCADE, null=True, default=None)
+    porcentaje_carnada = models.FloatField(default=0.0)
 
-# Tabla: DatosCaptura
 class DatosCaptura(models.Model):
-    codigo_captura = models.AutoField(primary_key=True, db_column='Codigo_Captura')
-    codigo_lance = models.ForeignKey(Lance, on_delete=models.CASCADE, db_column='CodigoLance')
-    taxa = models.CharField(max_length=100, db_column='Taxa')
-    genero = models.CharField(max_length=100, db_column='Genero')
-    especie = models.CharField(max_length=100, db_column='Especie')
-    nombre_cientifico = models.CharField(max_length=150, db_column='Nombre_Cientifico')
-    nombre_comun = models.CharField(max_length=150, db_column='Nombre_Comun')
-    individuos_retenidos = models.IntegerField(db_column='Individuos_Retenidos')
-    individuos_descarte = models.IntegerField(db_column='Individuos_Descarte')
-    total_individuos = models.IntegerField(db_column='Total_Individuos')
-    peso_retenido = models.DecimalField(max_digits=10, decimal_places=2, db_column='Peso_Retenido')
-    peso_descarte = models.DecimalField(max_digits=10, decimal_places=2, db_column='Peso_Descarte')
-    total_peso_lb = models.DecimalField(max_digits=10, decimal_places=2, db_column='Total_Peso_Lb')
+    codigo_captura = models.CharField(max_length=50, primary_key=True, default="default_captura")
+    lance = models.ForeignKey(Lance, on_delete=models.CASCADE, null=True, default=None)
+    especie = models.ForeignKey(Especie, on_delete=models.CASCADE, null=True, default=None)
+    individuos_retenidos = models.IntegerField(default=0)
+    individuos_descarte = models.IntegerField(default=0)
+    peso_retenido = models.FloatField(default=0.0)
+    peso_descarte = models.FloatField(default=0.0)
+    
 
-    class Meta:
-        managed = False
-        db_table = 'datos_captura'
-
-
-# Tabla: Avistamiento
 class Avistamiento(models.Model):
-    codigo_avistamiento = models.AutoField(primary_key=True, db_column='Codigo_Avistamiento')
-    codigo_lance = models.ForeignKey(Lance, on_delete=models.CASCADE, db_column='CodigoLance')
-    grupos_avi_int = models.CharField(max_length=100, db_column='Grupos_Avi_Int')
-    nombre_cientifico = models.CharField(max_length=150, db_column='Nombre_Cientifico')
-    alimentandose = models.IntegerField(db_column='Alimentandose')
-    deambulando = models.IntegerField(db_column='Deambulando')
-    en_reposo = models.IntegerField(db_column='En_Reposo')
-    total_individuos = models.IntegerField(db_column='Total_Individuos')
-
-    class Meta:
-        managed = False
-        db_table = 'avistamiento'
-
-
-# Tabla: Incidencia
+    codigo_avistamiento = models.CharField(max_length=50, primary_key=True, default="default_avistamiento")
+    lance = models.ForeignKey(Lance, on_delete=models.CASCADE, null=True, default=None)
+    especie = models.ForeignKey(Especie, on_delete=models.CASCADE, null=True, default=None)
+    grupos_avi_int = models.CharField(max_length=100, default="Sin grupo")
+    alimentandose = models.IntegerField(default=0)
+    deambulando = models.IntegerField(default=0)
+    en_reposo = models.IntegerField(default=0)
+    
 class Incidencia(models.Model):
-    codigo_incidencia = models.CharField(max_length=50, primary_key=True, db_column='Codigo_Incidencia')
-    codigo_lance = models.ForeignKey(Lance, on_delete=models.CASCADE, db_column='CodigoLance')
-    grupos_avi_int = models.CharField(max_length=100, db_column='Grupos_Avi_Int')
-    nombre_cientifico = models.CharField(max_length=150, db_column='Nombre_Cientifico')
-    herida_grave = models.IntegerField(db_column='Herida_Grave')
-    herida_leve = models.IntegerField(db_column='Herida_Leve')
-    muerto = models.IntegerField(db_column='Muerto')
-    aves_pico = models.IntegerField(blank=True, null=True, db_column='Aves_Pico')
-    aves_patas = models.IntegerField(blank=True, null=True, db_column='Aves_Patas')
-    aves_alas = models.IntegerField(blank=True, null=True, db_column='Aves_Alas')
-    mamiferos_hocico = models.IntegerField(blank=True, null=True, db_column='Mamiferos_Hocico')
-    mamiferos_cuello = models.IntegerField(blank=True, null=True, db_column='Mamiferos_Cuello')
-    mamiferos_cuerpo = models.IntegerField(blank=True, null=True, db_column='Mamiferos_Cuerpo')
-    tortugas_pico = models.IntegerField(blank=True, null=True, db_column='Tortugas_Pico')
-    tortugas_cuerpo = models.IntegerField(blank=True, null=True, db_column='Tortugas_Cuerpo')
-    tortugas_aleta = models.IntegerField(blank=True, null=True, db_column='Tortugas_Aleta')
-    palangre_orinque = models.IntegerField(blank=True, null=True, db_column='Palangre_Orinque')
-    palangre_reinal = models.IntegerField(blank=True, null=True, db_column='Palangre_Reinal')
-    palangre_anzuelo = models.IntegerField(blank=True, null=True, db_column='Palangre_Anzuelo')
-    palangre_linea_madre = models.IntegerField(blank=True, null=True, db_column='Palangre_Linea_Madre')
-    total_individuos = models.IntegerField(db_column='Total_Individuos')
-    observacion = models.CharField(max_length=250, blank=True, null=True, db_column='Observacion')
+    codigo_incidencia = models.CharField(max_length=50, primary_key=True)
+    lance = models.ForeignKey(Lance, on_delete=models.CASCADE, null=True)
+    especie = models.ForeignKey(Especie, on_delete=models.CASCADE, null=True)
+    grupos_avi_int = models.CharField(max_length=100, null=True, blank=True, default="Sin grupo")
+    herida_grave = models.IntegerField(default=0)
+    herida_leve = models.IntegerField(default=0)
+    muerto = models.IntegerField(default=0)
+    Totalindividuos = models.IntegerField(default=0)
+    observacion = models.TextField(null=True, blank=True, default="Sin observación")
 
-    class Meta:
-        managed = False
-        db_table = 'incidencia'
+class IncidenciaAves(models.Model):
+    codigo_incidencia = models.OneToOneField(Incidencia, on_delete=models.CASCADE, primary_key=True)
+    aves_pico = models.IntegerField(default=0)
+    aves_patas = models.IntegerField(default=0)
+    aves_alas = models.IntegerField(default=0)
+
+class IncidenciaMamiferos(models.Model):
+    codigo_incidencia = models.OneToOneField(Incidencia, on_delete=models.CASCADE, primary_key=True)
+    mamiferos_hocico = models.IntegerField(default=0)
+    mamiferos_cuello = models.IntegerField(default=0)
+    mamiferos_cuerpo = models.IntegerField(default=0)
+
+class IncidenciaTortugas(models.Model):
+    codigo_incidencia = models.OneToOneField(Incidencia, on_delete=models.CASCADE, primary_key=True)
+    tortugas_pico = models.IntegerField(default=0)
+    tortugas_cuerpo = models.IntegerField(default=0)
+    tortugas_aleta = models.IntegerField(default=0)
+
+class IncidenciaPalangre(models.Model):
+    codigo_incidencia = models.OneToOneField(Incidencia, on_delete=models.CASCADE, primary_key=True)
+    palangre_orinque = models.IntegerField(default=0)
+    palangre_reinal = models.IntegerField(default=0)
+    palangre_anzuelo = models.IntegerField(default=0)
+    palangre_linea_madre = models.IntegerField(default=0)

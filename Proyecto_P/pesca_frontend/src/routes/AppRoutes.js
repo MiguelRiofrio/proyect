@@ -8,12 +8,15 @@ import EditarActividadPesquera from '../pages/crud/EditarActividadPesquera';
 import DetalleActividadPesquera from '../pages/crud/DetalleActividadPesquera';
 import Perfil from '../pages/users/Perfil';
 import Dashboard from '../pages/Dashboard_Palangre/Dashboard';
-import MapaCaptura from '../pages/MapaCaptura/MapaCaptura';
-import MapaAvistamiento from '../pages/MapaAvistamiento/MapaAvistamiento';
-import MapaIncidente from '../pages/MapaIncidentes/MapaIncidentes';
+import MapaCaptura from '../pages/Mapa/MapaCaptura';
+import MapaAvistamiento from '../pages/Mapa/MapaAvistamiento';
+import MapaIncidente from '../pages/Mapa/MapaIncidente';
 import Login from '../pages/login/Login';
 import GestionUsuarios from '../pages/users/GestionUsuarios';
 import Reporte from '../pages/reporte/Reporte';
+import { routerCrudRoutes } from '../pages/crud/Component/routerCrudRoutes';
+
+
 const AppRoutes = ({ isAuthenticated, userRole, handleLogin }) => {
   return (
     <Routes>
@@ -25,13 +28,15 @@ const AppRoutes = ({ isAuthenticated, userRole, handleLogin }) => {
           <Route path="/mapacaptura" element={<MapaCaptura />} />
           <Route path="/mapaavistamiento" element={<MapaAvistamiento />} />
           <Route path="/mapaincidencia" element={<MapaIncidente />} />
-          <Route path="/actividades" element={<ActividadPesqueraList />} />
+          <Route path="/actividadeslist" element={<ActividadPesqueraList />} />
           <Route path="/agregar" element={<AgregarActividadPesquera />} />
           <Route path="/editar/:id" element={<EditarActividadPesquera />} />
           <Route path="/detalle/:id" element={<DetalleActividadPesquera />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/reporte" element={<Reporte/>} />
+          {routerCrudRoutes}
 
+    
           {userRole === 'admin' ? (
             <Route path="/gestionUser" element={<GestionUsuarios />} />
           ) : (

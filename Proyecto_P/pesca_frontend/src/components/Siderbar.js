@@ -37,10 +37,10 @@ const Sidebar = () => {
             <ListGroupItem tag={NavLink} to="/mapacaptura" action>
               Mapa Captura
             </ListGroupItem>
-            <ListGroupItem tag={NavLink} to="/mapaincidencia" action>
+            <ListGroupItem tag={NavLink} to="/mapaavistamiento" tipo={"a"} action>
               Mapa Incidencia
             </ListGroupItem>
-            <ListGroupItem tag={NavLink} to="/mapaavistamiento" action>
+            <ListGroupItem tag={NavLink} to="/mapaincidencia" action>
               Mapa Avistamiento
             </ListGroupItem>
           </ListGroup>
@@ -48,7 +48,7 @@ const Sidebar = () => {
         <ListGroupItem tag={NavLink} to="/reporte" action>
           <ReceiptIcon style={{ marginRight: '10px' }} /> Report
         </ListGroupItem>
-        <ListGroupItem tag={NavLink} to="/actividades" action>
+        <ListGroupItem tag={NavLink} to="/actividadeslist" action>
           <ListAlt style={{ marginRight: '10px' }} /> Lista de Actividades
         </ListGroupItem>
 

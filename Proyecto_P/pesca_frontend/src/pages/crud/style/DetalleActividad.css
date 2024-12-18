@@ -1,27 +1,17 @@
-.detalle-actividad h1 {
-    font-family: 'Arial', sans-serif;
-    color: #333;
-  }
-  
-  .card-header {
-    font-weight: bold;
-  }
-  
-  .table-bordered {
-    margin-bottom: 0;
-  }
-  
-  .nav-tabs .nav-link {
-    font-weight: bold;
-  }
-  
-  .nav-tabs .nav-link.active {
-    background-color: #007bff;
-    color: white;
-  }
-  
-  .btn {
-    padding: 10px 20px;
-    font-size: 16px;
-  }
-  
+/* Estilo para pestañas activas */
+.custom-tabs .nav-link.active {
+  background-color: #000000 !important; /* Fondo negro */
+  color: #ffffff !important; /* Texto blanco */
+  border-color: hsl(0, 0%, 99%) #ffffff #ffffff !important; /* Bordes ajustados */
+}
+
+/* Estilo para pestañas inactivas */
+.custom-tabs .nav-link {
+  color: #000000 !important; /* Letras negras */
+  background-color: #f8f9fa; /* Fondo claro predeterminado */
+}
+
+.custom-tabs .nav-link:hover {
+  color: #fdfdfd !important; /* Letras más oscuras al pasar el cursor */
+  background-color: #8d8d8d; /* Cambio leve al pasar el cursor */
+}

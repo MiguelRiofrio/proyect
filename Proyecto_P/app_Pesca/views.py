@@ -1,362 +1,237 @@
+from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, action
-from rest_framework.views import APIView
-from rest_framework import viewsets,status
-from django.http import JsonResponse, HttpResponse
-from django.db.models import Sum, Count
-from collections import defaultdict
-from datetime import date
-import io
-import pandas as pd
-from reportlab.pdfgen import canvas
-from .models import Lance, DatosCaptura, Avistamiento, Incidencia
-from django.shortcuts import get_object_or_404
-from .models import (
-    ActividadPesquera, Lance, DatosCaptura, Avistamiento, Incidencia
-)
-from .serializers import (
-    ActividadPesqueraSerializer, LanceSerializer, LanceCercoSerializer,
-    LancePalangreSerializer, LanceArrastreSerializer, DatosCapturaSerializer,
-    AvistamientoSerializer, IncidenciaSerializer
-)
+from rest_framework.decorators import action, api_view
+from . import models, serializers
+from django.db.models import Sum, Count, Avg
+import numpy as np
+from sklearn.linear_model import LinearRegression
+ 
 
+@api_view(['GET'])
+def dashboard_data(request):
+    # Filtro por embarcación
+    embarcacion_nombre = request.GET.get('embarcacion', None)
+    actividades = models.ActividadPesquera.objects.all()
+    if embarcacion_nombre:
+        actividades = actividades.filter(embarcacion__nombre_embarcacion=embarcacion_nombre)
 
-#vistas para visualizar todos los datos de una sola actividad
-class ActividadDetalleCompletaView(APIView):
+    # KPI 1: Total de actividades pesqueras
+    total_actividades = actividades.count()
+
+    # KPI 2: Total de capturas retenidas y descartadas
+    capturas = models.DatosCaptura.objects.filter(lance__actividad__in=actividades)
+    total_retenido = capturas.aggregate(Sum('peso_retenido'))['peso_retenido__sum'] or 0
+    total_descartado = capturas.aggregate(Sum('peso_descarte'))['peso_descarte__sum'] or 0
+
+    # KPI 3: Capturas retenidas por mes (para regresión)
+    capturas_por_mes = capturas.values('lance__calado_fecha__month').annotate(
+        total_retenido=Sum('peso_retenido')).order_by('lance__calado_fecha__month')
+
+    # Extraer datos para regresión lineal
+    meses = [item['lance__calado_fecha__month'] for item in capturas_por_mes]
+    capturas_mes = [item['total_retenido'] for item in capturas_por_mes]
+
+    # Regresión lineal (predicción)
+    if len(meses) > 1:
+        X = np.array(meses).reshape(-1, 1)
+        y = np.array(capturas_mes)
+        model = LinearRegression()
+        model.fit(X, y)
+        tendencia = model.coef_[0]  # Pendiente de la regresión
+    else:
+        tendencia = None  # No hay suficiente información para la regresión
+
+    # KPI 4: Promedio de capturas retenidas por lance
+    promedio_retenido = capturas.aggregate(Avg('peso_retenido'))['peso_retenido__avg'] or 0
+
+    # Preparar la respuesta
+    data = {
+        "total_actividades": total_actividades,
+        "total_retenido": total_retenido,
+        "total_descartado": total_descartado,
+        "capturas_por_mes": capturas_por_mes,
+        "promedio_retenido": promedio_retenido,
+        "tendencia_retenido": tendencia,
+    }
+
+    return Response(data)
+
+@api_view(['GET'])
+def coordenadas_general(request):
     """
-    Vista para obtener los detalles de una actividad pesquera, incluyendo todos los lances, capturas, incidencias y avistamientos relacionados.
+    API para obtener las coordenadas en formato decimal de especies capturadas, avistamientos e incidencias.
     """
+    def convertir_coordenadas(ns, grados, minutos):
+        """
+        Convierte las coordenadas en formato NS/EW, Grados y Minutos a decimal.
+        Maneja mayúsculas y minúsculas para 'NS/EW'.
+        """
+        decimal = float(grados) + float(minutos) / 60
+        if ns.lower() in ['s', 'w']:  # Convertir a minúsculas para comparar
+            decimal = -decimal
+        return round(decimal, 4)
 
-    def get(self, request, codigo_actividad):
-        # Obtener la actividad pesquera por código
-        actividad = get_object_or_404(ActividadPesquera, codigo_actividad=codigo_actividad)
-        actividad_serializer = ActividadPesqueraSerializer(actividad)
+    # Consultar datos de capturas
+    capturas = models.DatosCaptura.objects.select_related('especie', 'lance__coordenadas').all()
 
-        # Obtener todos los lances relacionados con la actividad
-        lances = Lance.objects.filter(codigo_actividad=actividad.codigo_actividad)
-        lances_data = []
+    # Consultar datos de avistamientos
+    avistamientos = models.Avistamiento.objects.select_related('especie', 'lance__coordenadas').all()
 
-        for lance in lances:
-            # Procesar latitud y longitud
-            latitud = convertir_coordenadas(
-                lance.latitud_ns, lance.latitud_grados, lance.latitud_minutos
+    # Consultar datos de incidencias
+    incidencias = models.Incidencia.objects.select_related('especie', 'lance__coordenadas').all()
+
+    # Crear el formato de salida
+    data = {
+        "capturas": [],
+        "avistamientos": [],
+        "incidencias": []
+    }
+
+    # Procesar capturas
+    for captura in capturas:
+        if captura.lance and captura.lance.coordenadas:
+            coordenadas = captura.lance.coordenadas
+            latitud_decimal = convertir_coordenadas(
+                coordenadas.latitud_ns,
+                coordenadas.latitud_grados,
+                coordenadas.latitud_minutos
             )
-            longitud = convertir_coordenadas(
-                lance.longitud_w, lance.longitud_grados, lance.longitud_minutos
+            longitud_decimal = convertir_coordenadas(
+                coordenadas.longitud_w,
+                coordenadas.longitud_grados,
+                coordenadas.longitud_minutos
             )
-
-            # Serializar el lance básico y añadir las coordenadas calculadas
-            lance_data = LanceSerializer(lance).data
-            lance_data['latitud'] = latitud
-            lance_data['longitud'] = longitud
-
-            # Identificar el tipo de lance y serializar los detalles
-            if hasattr(lance, 'lancecerco'):
-                lance_tipo = "cerco"
-                detalles = LanceCercoSerializer(lance.lancecerco).data
-            elif hasattr(lance, 'lancepalangre'):
-                lance_tipo = "palangre"
-                detalles = LancePalangreSerializer(lance.lancepalangre).data
-            elif hasattr(lance, 'lancearrastre'):
-                lance_tipo = "arrastre"
-                detalles = LanceArrastreSerializer(lance.lancearrastre).data
-            else:
-                lance_tipo = "desconocido"
-                detalles = {}
-
-            # Obtener capturas asociadas al lance
-            capturas = DatosCaptura.objects.filter(codigo_lance=lance.codigo_lance)
-            capturas_serializer = DatosCapturaSerializer(capturas, many=True)
-
-            # Obtener avistamientos asociados al lance
-            avistamientos = Avistamiento.objects.filter(codigo_lance=lance.codigo_lance)
-            avistamientos_serializer = AvistamientoSerializer(avistamientos, many=True)
-
-            # Obtener incidencias asociadas al lance
-            incidencias = Incidencia.objects.filter(codigo_lance=lance.codigo_lance)
-            incidencias_serializer = IncidenciaSerializer(incidencias, many=True)
-
-            # Añadir todos los detalles del lance
-            lances_data.append({
-                "lance": lance_data,
-                "tipo_lance": lance_tipo,
-                "detalles": detalles,
-                "capturas": capturas_serializer.data,
-                "avistamientos": avistamientos_serializer.data,
-                "incidencias": incidencias_serializer.data
+            data["capturas"].append({
+                "especie": captura.especie.nombre_cientifico,
+                "lance": captura.lance.codigo_lance,
+                "nombre_comun": captura.especie.nombre_comun,
+                "latitud": latitud_decimal,
+                "longitud": longitud_decimal,
+                "total": captura.individuos_retenidos + captura.individuos_descarte
             })
 
-        # Construir la respuesta completa
-        response_data = {
-            "actividad": actividad_serializer.data,
-            "lances": lances_data
-        }
+    # Procesar avistamientos
+    for avistamiento in avistamientos:
+        if avistamiento.lance and avistamiento.lance.coordenadas:
+            coordenadas = avistamiento.lance.coordenadas
+            latitud_decimal = convertir_coordenadas(
+                coordenadas.latitud_ns,
+                coordenadas.latitud_grados,
+                coordenadas.latitud_minutos
+            )
+            longitud_decimal = convertir_coordenadas(
+                coordenadas.longitud_w,
+                coordenadas.longitud_grados,
+                coordenadas.longitud_minutos
+            )
+            data["avistamientos"].append({
+                "especie": avistamiento.especie.nombre_cientifico,
+                "nombre_comun": avistamiento.especie.nombre_comun,
+                "lance": avistamiento.lance.codigo_lance,
+                "latitud": latitud_decimal,
+                "longitud": longitud_decimal,
+            })
 
-        return Response(response_data, status=status.HTTP_200_OK)
+    # Procesar incidencias
+    for incidencia in incidencias:
+        if incidencia.lance and incidencia.lance.coordenadas:
+            coordenadas = incidencia.lance.coordenadas
+            latitud_decimal = convertir_coordenadas(
+                coordenadas.latitud_ns,
+                coordenadas.latitud_grados,
+                coordenadas.latitud_minutos
+            )
+            longitud_decimal = convertir_coordenadas(
+                coordenadas.longitud_w,
+                coordenadas.longitud_grados,
+                coordenadas.longitud_minutos
+            )
+            data["incidencias"].append({
+                "especie": incidencia.especie.nombre_cientifico,
+                "nombre_comun": incidencia.especie.nombre_comun,
+                "lance": incidencia.lance.codigo_lance,
+                "latitud": latitud_decimal,
+                "longitud": longitud_decimal,
+            })
 
-#vista para visualizar la lista y crear actividad
-class ActividadPesqueraViewSet(viewsets.ModelViewSet):
+    return Response(data)
+
+@api_view(['GET'])
+def kpi_home(request):
     """
-    ViewSet para manejar todas las operaciones CRUD de ActividadPesquera.
+    API para calcular KPIs para la página principal.
     """
-    queryset = ActividadPesquera.objects.all()
-    serializer_class = ActividadPesqueraSerializer
+    # Total de especies
+    total_especies = models.Especie.objects.count()
 
-    # Elimina redundancia al combinar este código con el ViewSet anterior
-    @api_view(['GET', 'POST'])
-    def actividad_pesquera_list(request):
-        """
-        API para listar todas las actividades pesqueras o crear una nueva.
-        """
-        if request.method == 'GET':
-            # Listar actividades
-            actividades = ActividadPesquera.objects.all()
-            serializer = ActividadPesqueraSerializer(actividades, many=True)
-            return Response(serializer.data)
-        
-    # Método para manejar el borrado de una actividad pesquera
-    @action(detail=True, methods=['delete'], url_path='delete')
-    def delete_actividad(self, request, pk=None):
-        try:
-            actividad = ActividadPesquera.objects.get(pk=pk)
-            actividad.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except ActividadPesquera.DoesNotExist:
-            return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-# Generar Reporte
-def generar_reporte(request):
-    formato = request.GET.get('formato', 'vista_previa')  # Vista previa por defecto
-
-    # Ejemplo de datos para el reporte
-    data = list(
-        DatosCaptura.objects.values('nombre_cientifico')
-        .annotate(total_capturas=Sum('total_individuos'))
-        .order_by('-total_capturas')
+    # Total de observaciones registradas (avistamientos)
+    total_avistamientos = (
+        models.Avistamiento.objects.aggregate(
+            total=Sum('alimentandose') + Sum('deambulando') + Sum('en_reposo')
+        )['total']
+        or 0
     )
 
-    if formato == 'pdf':
-        # Generar PDF
-        buffer = io.BytesIO()
-        p = canvas.Canvas(buffer)
-        p.drawString(100, 750, "Reporte de Capturas por Especie")
-        y = 700
-        for row in data:
-            p.drawString(100, y, f"{row['nombre_cientifico']}: {row['total_capturas']} capturas")
-            y -= 20
-        p.save()
-        buffer.seek(0)
-        return HttpResponse(buffer, content_type='application/pdf')
+    # Total de incidencias registradas
+    total_incidencias = (
+        models.Incidencia.objects.aggregate(
+            total=Sum('herida_grave') + Sum('herida_leve') + Sum('muerto')
+        )['total']
+        or 0
+    )
 
-    elif formato == 'xlsx':
-        # Generar Excel
-        df = pd.DataFrame(data)
-        output = io.BytesIO()
-        writer = pd.ExcelWriter(output, engine='xlsxwriter')
-        df.to_excel(writer, index=False, sheet_name='Reporte')
-        writer.save()
-        output.seek(0)
-        return HttpResponse(output, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    # Especie más común en capturas
+    especie_mas_comun = (
+        models.DatosCaptura.objects.values('especie__nombre_cientifico', 'especie__nombre_comun')
+        .annotate(total_captura=Sum('individuos_retenidos'))
+        .order_by('-total_captura')
+        .first()
+    )
 
-    elif formato == 'vista_previa':
-        # Devolver datos como JSON para vista previa
-        return JsonResponse(data, safe=False)
+    # Preparar datos de respuesta
+    data = {
+        "total_especies": total_especies,
+        "total_avistamientos": total_avistamientos,
+        "total_incidencias": total_incidencias,
+        "especie_mas_comun": especie_mas_comun or {
+            "especie__nombre_cientifico": "No disponible",
+            "especie__nombre_comun": "No disponible",
+            "total_captura": 0,
+        },
+    }
 
-    else:
-        return HttpResponse("Formato no soportado", status=400)
+    return Response(data)
+
 
 
 @api_view(['GET'])
-def dashboard_data2(request):
+def top_especies(request):
     """
-    API para obtener datos del dashboard.
+    API para obtener el top 10 de especies más capturadas, avistadas y con más incidencias.
     """
-    # Capturas por especie
-    capturas_por_especie = DatosCaptura.objects.values('nombre_cientifico').annotate(
-        total_captura=Sum('total_individuos')
-    ).order_by('-total_captura')
-
-    # Total de peso capturado retenido y descartado
-    peso_capturas = DatosCaptura.objects.aggregate(
-        total_retenido=Sum('peso_retenido'),
-        total_descarte=Sum('peso_descarte')
+    # Top 10 especies más capturadas
+    capturas = (
+        models.DatosCaptura.objects.values('especie__nombre_cientifico', 'especie__nombre_comun')
+        .annotate(total_captura=Sum('individuos_retenidos'))
+        .order_by('-total_captura')[:10]
     )
 
-    # Avistamientos por grupo
-    avistamientos_por_grupo = Avistamiento.objects.values('grupos_avi_int').annotate(
-        total=Count('codigo_avistamiento')
-    ).order_by('-total')
-
-    # Incidencias por tipo
-    incidencias_por_tipo = Incidencia.objects.aggregate(
-        herida_grave=Sum('herida_grave'),
-        herida_leve=Sum('herida_leve'),
-        muerto=Sum('muerto')
+    # Top 10 especies más avistadas
+    avistamientos = (
+        models.Avistamiento.objects.values('especie__nombre_cientifico', 'especie__nombre_comun')
+        .annotate(total_avistamientos=Sum('alimentandose') + Sum('deambulando') + Sum('en_reposo'))
+        .order_by('-total_avistamientos')[:10]
     )
 
-    # Lances por mes
-    lances = Lance.objects.all()
-    lances_por_mes = defaultdict(int)
-    for lance in lances:
-        if lance.calado_fecha:
-            mes = lance.calado_fecha.replace(day=1)  # Normalizar al primer día del mes
-            lances_por_mes[mes] += 1
+    # Top 10 especies con más incidencias
+    incidencias = (
+        models.Incidencia.objects.values('especie__nombre_cientifico', 'especie__nombre_comun')
+        .annotate(total_incidencias=Sum('herida_grave') + Sum('herida_leve') + Sum('muerto'))
+        .order_by('-total_incidencias')[:10]
+    )
 
-    lances_por_mes_resultados = [
-        {'mes': mes.strftime('%Y-%m'), 'total_lances': total}
-        for mes, total in sorted(lances_por_mes.items())
-    ]
-
-    # Respuesta
-    data = {
-        "capturas_por_especie": list(capturas_por_especie),
-        "peso_capturas": peso_capturas,
-        "avistamientos_por_grupo": list(avistamientos_por_grupo),
-        "incidencias_por_tipo": incidencias_por_tipo,
-        "lances_por_mes": lances_por_mes_resultados,
-    }
-    return Response(data)
-
-# Dashboard Data
-def dashboard_data(request):
-    lances_por_mes = defaultdict(int)
-
-    for lance in Lance.objects.all():
-        try:
-            fecha = lance.calado_fecha  # Se asume que `calado_fecha` es un campo existente en el modelo Lance
-            mes = fecha.replace(day=1)
-            lances_por_mes[mes] += 1
-        except AttributeError:
-            continue
-
-    lances_por_mes_resultados = [
-        {'mes': mes.strftime('%Y-%m'), 'total_lances': total}
-        for mes, total in sorted(lances_por_mes.items())
-    ]
-
-    data = {
-        "capturas_por_especie": list(
-            DatosCaptura.objects.values('nombre_cientifico')
-            .annotate(total_captura=Sum('total_individuos'))
-            .order_by('-total_captura')
-        ),
-        "peso_capturas": DatosCaptura.objects.aggregate(
-            total_retenido=Sum('peso_retenido'),
-            total_descarte=Sum('peso_descarte'),
-        ),
-        "avistamientos_por_grupo": list(
-            Avistamiento.objects.values('grupos_avi_int')
-            .annotate(total=Count('codigo_avistamiento'))
-            .order_by('-total')
-        ),
-        "incidencias_por_tipo": Incidencia.objects.aggregate(
-            herida_grave=Sum('herida_grave'),
-            herida_leve=Sum('herida_leve'),
-            muerto=Sum('muerto'),
-        ),
-        "lances_por_mes": lances_por_mes_resultados,
-    }
-
-    return JsonResponse(data)
-
-# Datos del Mapa con Avistamientos
-def obtener_datosA_mapa(request):
-    lances = Lance.objects.all()
-    datos = []
-    estado="desconocido"
-    for lance in lances:
-        try:
-            # Calcular la latitud y longitud
-            lat = convertir_coordenadas(lance.latitud_ns,lance.latitud_grados,lance.latitud_minutos)
-            lon = convertir_coordenadas(lance.longitud_w,lance.longitud_grados,lance.longitud_minutos)
-            
-            # Agregar datos de Avistamientos
-            avistamientos = Avistamiento.objects.filter(codigo_lance=lance)
-            for avistamiento in avistamientos:
-                datos.append({
-                    'tipo': 'avistamiento',
-                    'latitud': lat,
-                    'longitud': lon,
-                    'nombre_cientifico': avistamiento.nombre_cientifico,
-                    'alimentandose': avistamiento.alimentandose,
-                    'deambulando': avistamiento.deambulando,
-                    'en_reposo': avistamiento.en_reposo,
-                    'total_individuos': avistamiento.total_individuos,
-                })
-
-           
-        except (AttributeError, TypeError) as e:
-            # Puedes registrar el error si necesitas depuración
-            print(f"Error procesando lance {lance.codigo_lance}: {e}")
-            continue
-
-    return JsonResponse(datos, safe=False)
-
-
-def obtener_datosC_mapa(request):
-    lances = Lance.objects.all()
-    datos = []
-    estado="desconocido"
-    for lance in lances:
-        try:
-            # Calcular la latitud y longitud
-            lat = convertir_coordenadas(lance.latitud_ns,lance.latitud_grados,lance.latitud_minutos)
-            lon = convertir_coordenadas(lance.longitud_w,lance.longitud_grados,lance.longitud_minutos)
-            
-          # Agregar datos de Capturas
-            capturas = DatosCaptura.objects.filter(codigo_lance=lance)
-            for captura in capturas:
-                datos.append({
-                    'tipo': 'captura',
-                    'latitud': lat,
-                    'longitud': lon,
-                    'nombre_cientifico': captura.nombre_cientifico,
-                    'total_peso_lb': captura. total_peso_lb,
-                    'cantidad': captura.total_individuos,
-                })
-           
-        except (AttributeError, TypeError) as e:
-            # Puedes registrar el error si necesitas depuración
-            print(f"Error procesando lance {lance.codigo_lance}: {e}")
-            continue
-
-    return JsonResponse(datos, safe=False)
-
-
-def obtener_datosI_mapa(request):
-    lances = Lance.objects.all()
-    datos = []
-    estado="desconocido"
-    for lance in lances:
-        try:
-            # Calcular la latitud y longitud
-            lat = convertir_coordenadas(lance.latitud_ns,lance.latitud_grados,lance.latitud_minutos)
-            lon = convertir_coordenadas(lance.longitud_w,lance.longitud_grados,lance.longitud_minutos)
-            
-                # Agregar datos de Incidencias
-            incidencias = Incidencia.objects.filter(codigo_lance=lance)
-           
-            datos.append({
-                'tipo': 'incidencia',
-                'latitud': lat,
-                'longitud': lon,
-                
-                })
-           
-        except (AttributeError, TypeError) as e:
-            # Puedes registrar el error si necesitas depuración
-            print(f"Error procesando lance {lance.codigo_lance}: {e}")
-            continue
-
-    return JsonResponse(datos, safe=False)
-
-     
-#funcion para convertir coordenadas
-def convertir_coordenadas(ns, grados, minutos):
-    """
-    Convierte las coordenadas en formato NS/EW, Grados y Minutos a decimal.
-    """
-    decimal = float(grados) + float(minutos) / 60
-    if ns in ['s','w']:  # Si es sur o oeste, debe ser negativo
-        decimal = -decimal
-    return round(decimal, 4) 
+    return Response({
+        'top_capturas': list(capturas),
+        'top_avistamientos': list(avistamientos),
+        'top_incidencias': list(incidencias),
+    })

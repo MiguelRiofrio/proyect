@@ -19,7 +19,7 @@ const ActividadPesqueraList = () => {
   const fetchActividades = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/actividad/');
+      const response = await axios.get('http://localhost:8000/api/crud/actividades/list/');
       setActividades(response.data);
       setError(null);
     } catch (error) {
@@ -31,7 +31,7 @@ const ActividadPesqueraList = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/actividad/${id}/`);
+      await axios.delete(`http://localhost:8000/api/crud/actividades/${id}/`);
       alert('Actividad pesquera eliminada con éxito');
       fetchActividades(); // Recargar actividades después de eliminar
     } catch (error) {
@@ -65,9 +65,10 @@ const ActividadPesqueraList = () => {
         <Table bordered>
           <thead>
             <tr>
-              <th>Código de Ingreso</th>
+              <th>tipo arte pesca</th>
               <th>Embarcación</th>
-              <th>Tipo de Arte Pesca</th>
+              <th>Puerto salida</th>
+              <th>observador</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -75,8 +76,9 @@ const ActividadPesqueraList = () => {
             {actividades.map((actividad) => (
               <tr key={actividad.codigo_actividad}>
                 <td>{actividad.codigo_actividad}</td>
-                <td>{actividad.nombre_embarcacion}</td>
-                <td>{actividad.arte_pesca}</td>
+                <td>{actividad.embarcacion__nombre_embarcacion}</td>
+                <td>{actividad.puerto_salida__nombre_puerto}</td>
+                <td>{actividad.pesca_objetivo}</td>
                 <td>
                   <Button
                     color="secondary"
@@ -104,6 +106,8 @@ const ActividadPesqueraList = () => {
           </tbody>
         </Table>
       )}
+
+      
 
       {/* Modal de Confirmación para Eliminar */}
       <Modal isOpen={modalOpen} toggle={() => toggleModal(null)}>

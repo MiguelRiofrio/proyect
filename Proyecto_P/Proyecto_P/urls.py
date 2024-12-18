@@ -8,5 +8,6 @@ urlpatterns = [
     path('api/auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),  # Usa la vista personalizada
     path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/users/', include('app_Pesca.users.urls')),  # Incluye las rutas de la app users
+    path('api/crud/', include('app_Pesca.crud.urls')),  # Incluye las rutas de la app crud
     path('api/', include('app_Pesca.urls')),  # Incluir las rutas de la aplicación de pesca
 ]
