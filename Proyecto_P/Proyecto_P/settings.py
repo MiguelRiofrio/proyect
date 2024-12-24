@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    'app_Pesca',
+    'app_backend',
     
 ]
 
@@ -77,8 +77,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'Proyecto_P.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
