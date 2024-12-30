@@ -7,6 +7,9 @@ from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.http import JsonResponse
+from rest_framework.views import APIView
+from django.db import transaction
 
 class SchemaMixin:
     @action(detail=False, methods=['get'], url_path='schema')
@@ -20,8 +23,10 @@ class SchemaMixin:
         ]
         return Response(fields)
 
-
-
+def taxa_list(request):
+    taxonomias = models.Especie.objects.values_list('taxa', flat=True).distinct()
+    taxonomias_filtradas = [taxa for taxa in taxonomias if taxa]  # Elimina valores nulos o vacíos
+    return JsonResponse(list(taxonomias_filtradas), safe=False)
 
 # CRUD para Actividad Pesquera
 class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
@@ -42,172 +47,6 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
             'pesca_objetivo'
         )
         return Response(data)
-
-    @action(detail=True, methods=['put'], url_path='edit-details')
-    def Editar_actividad(self, request, pk=None):
-        """
-        Permite editar los detalles completos de una actividad pesquera, incluyendo sus relaciones asociadas
-        (lances, coordenadas, capturas, incidencias, detalles de lances específicos, y carnadas).
-        """
-        try:
-            # Obtener la actividad
-            actividad = models.ActividadPesquera.objects.get(pk=pk)
-
-            # Actualizar la actividad pesquera
-            actividad_data = request.data
-            actividad_serializer = serializers.ActividadPesqueraSerializer(
-                actividad, data=actividad_data, partial=True
-            )
-            actividad_serializer.is_valid(raise_exception=True)
-            actividad_serializer.save()
-
-            # Actualizar lances
-            lances_data = actividad_data.get('lances', [])
-            for lance_data in lances_data:
-                lance_codigo = lance_data.get('codigo_lance')
-                if not lance_codigo:
-                    continue
-
-                # Buscar o crear el lance
-                lance, created = models.Lance.objects.get_or_create(
-                    codigo_lance=lance_codigo,
-                    defaults={'actividad': actividad}
-                )
-
-                # Actualizar los datos del lance
-                lance_serializer = serializers.LanceSerializer(lance, data=lance_data, partial=True)
-                lance_serializer.is_valid(raise_exception=True)
-                lance_serializer.save()
-
-                # Actualizar coordenadas del lance
-                if 'coordenadas' in lance_data:
-                    coordenadas_data = lance_data['coordenadas']
-                    coordenadas, _ = models.Coordenadas.objects.get_or_create(
-                        codigo_coordenadas=lance.coordenadas.codigo_coordenadas if lance.coordenadas else None
-                    )
-                    coordenadas_serializer = serializers.CoordenadasSerializer(
-                        coordenadas, data=coordenadas_data, partial=True
-                    )
-                    coordenadas_serializer.is_valid(raise_exception=True)
-                    coordenadas_serializer.save()
-                    lance.coordenadas = coordenadas
-                    lance.save()
-
-                # Manejar submodelos de Lance
-                if 'detalles_palangre' in lance_data:
-                    detalles_palangre = lance_data['detalles_palangre']
-                    palangre, _ = models.LancePalangre.objects.get_or_create(codigo_lance=lance)
-                    palangre_serializer = serializers.LancePalangreSerializer(
-                        palangre, data=detalles_palangre, partial=True
-                    )
-                    palangre_serializer.is_valid(raise_exception=True)
-                    palangre_serializer.save()
-
-
-                    # Manejar carnadas de LancePalangre
-                    carnadas_data = detalles_palangre.get('carnadas', [])
-                    existing_carnadas = {carnada.codigo_carnada: carnada for carnada in palangre.lancepalangrecarnadas_set.all()}
-                    for carnada_data in carnadas_data:
-                        carnada_codigo = carnada_data.get('codigo_carnada')
-                        if carnada_codigo in existing_carnadas:
-                            carnada = existing_carnadas.pop(carnada_codigo)
-                            carnada_serializer = serializers.LancePalangreCarnadasSerializer(
-                                carnada, data=carnada_data, partial=True
-                            )
-                        else:
-                            carnada_serializer = serializers.LancePalangreCarnadasSerializer(data=carnada_data)
-                        carnada_serializer.is_valid(raise_exception=True)
-                        carnada_serializer.save()
-                    # Eliminar carnadas no incluidas
-                    for remaining_carnada in existing_carnadas.values():
-                        remaining_carnada.delete()
-
-                # Detalles de LanceCerco
-                if 'detalles_lance_cerco' in lance_data:
-                    detalles_cerco = lance_data['detalles_lance_cerco']
-                    cerco, _ = models.LanceCerco.objects.get_or_create(codigo_lance=lance)
-                    cerco_serializer = serializers.LanceCercoSerializer(
-                        cerco, data=detalles_cerco, partial=True
-                    )
-                    cerco_serializer.is_valid(raise_exception=True)
-                    cerco_serializer.save()
-
-                # Detalles de LanceArrastre
-                if 'detalles_lance_arrastre' in lance_data:
-                    detalles_arrastre = lance_data['detalles_lance_arrastre']
-                    arrastre, _ = models.LanceArrastre.objects.get_or_create(codigo_lance=lance)
-                    arrastre_serializer = serializers.LanceArrastreSerializer(
-                        arrastre, data=detalles_arrastre, partial=True
-                    )
-                    arrastre_serializer.is_valid(raise_exception=True)
-                    arrastre_serializer.save()
-
-                # Actualizar capturas relacionadas con el lance
-                capturas_data = lance_data.get('capturas', [])
-                for captura_data in capturas_data:
-                    captura_codigo = captura_data.get('codigo_captura')
-                    captura, _ = models.DatosCaptura.objects.get_or_create(
-                        codigo_captura=captura_codigo,
-                        defaults={'lance': lance}
-                    )
-                    captura_serializer = serializers.DatosCapturaSerializer(
-                        captura, data=captura_data, partial=True
-                    )
-                    captura_serializer.is_valid(raise_exception=True)
-                    captura_serializer.save()
-
-                # Actualizar incidencias relacionadas con el lance
-                incidencias_data = lance_data.get('incidencias', [])
-                for incidencia_data in incidencias_data:
-                    incidencia_codigo = incidencia_data.get('codigo_incidencia')
-                    incidencia, _ = models.Incidencia.objects.get_or_create(
-                        codigo_incidencia=incidencia_codigo,
-                        defaults={'lance': lance}
-                    )
-                    incidencia_serializer = serializers.IncidenciaSerializer(
-                        incidencia, data=incidencia_data, partial=True
-                    )
-                    incidencia_serializer.is_valid(raise_exception=True)
-                    incidencia_serializer.save()
-
-                    # Detalles específicos de incidencias
-                    if 'detalles_aves' in incidencia_data:
-                        aves_serializer = serializers.IncidenciaAvesSerializer(
-                            incidencia.incidenciaaves, data=incidencia_data['detalles_aves'], partial=True
-                        )
-                        aves_serializer.is_valid(raise_exception=True)
-                        aves_serializer.save()
-
-                    if 'detalles_mamiferos' in incidencia_data:
-                        mamiferos_serializer = serializers.IncidenciaMamiferosSerializer(
-                            incidencia.incidenciamamiferos, data=incidencia_data['detalles_mamiferos'], partial=True
-                        )
-                        mamiferos_serializer.is_valid(raise_exception=True)
-                        mamiferos_serializer.save()
-
-                    if 'detalles_tortugas' in incidencia_data:
-                        tortugas_serializer = serializers.IncidenciaTortugasSerializer(
-                            incidencia.incidenciatortugas, data=incidencia_data['detalles_tortugas'], partial=True
-                        )
-                        tortugas_serializer.is_valid(raise_exception=True)
-                        tortugas_serializer.save()
-
-                    if 'detalles_incidencia_palangre' in incidencia_data:
-                        palangre_serializer = serializers.IncidenciaPalangreSerializer(
-                            incidencia.incidenciapalangre, data=incidencia_data['detalles_incidencia_palangre'], partial=True
-                        )
-                        palangre_serializer.is_valid(raise_exception=True)
-                        palangre_serializer.save()
-
-
-            return Response({"message": "Actividad editada correctamente."}, status=status.HTTP_200_OK)
-
-        except models.ActividadPesquera.DoesNotExist:
-            return Response({"error": "Actividad no encontrada."}, status=status.HTTP_404_NOT_FOUND)
-        except ValidationError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)              
-        except Exception as e:
-            return Response({"error": f"Error inesperado: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['get'], url_path='details')
     def Detalle_actividad(self, request, pk=None):
@@ -337,7 +176,6 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                 lance_data['avistamientos'] = [
                     {
                         "codigo_avistamiento": avistamiento.codigo_avistamiento,
-                        "grupos_avi_int": avistamiento.grupos_avi_int,
                         "alimentandose": avistamiento.alimentandose,
                         "deambulando": avistamiento.deambulando,
                         "en_reposo": avistamiento.en_reposo,
@@ -352,7 +190,6 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                 lance_data['incidencias'] = [
                     {
                         "codigo_incidencia": incidencia.codigo_incidencia,
-                        "grupos_avi_int": incidencia.grupos_avi_int,
                         "herida_grave": incidencia.herida_grave,
                         "herida_leve": incidencia.herida_leve,
                         "muerto": incidencia.muerto,
@@ -398,82 +235,130 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=False, methods=['post'], url_path='create_details')
-    def Añadir_actividad(self, request):
+
+
+class EditarActividadCompleta(APIView):
+    def put(self, request, pk):
         """
-        Añade una nueva actividad pesquera con sus relaciones anidadas.
+        Actualiza una actividad pesquera completa, incluyendo lances, capturas, coordenadas, avistamientos e incidencias.
         """
         try:
-            # Datos de la actividad principal
-            actividad_data = request.data
-            lances_data = actividad_data.pop('lances', [])
-            
-            # Convertir identificadores en instancias
-            actividad_data['puerto_salida'] = models.Puerto.objects.get(pk=actividad_data['puerto_salida'])
-            actividad_data['puerto_entrada'] = models.Puerto.objects.get(pk=actividad_data['puerto_entrada'])
-            actividad_data['embarcacion'] = models.Embarcacion.objects.get(pk=actividad_data['embarcacion'])
-            actividad_data['capitan'] = models.Persona.objects.get(pk=actividad_data['capitan'])
-            actividad_data['armador'] = models.Persona.objects.get(pk=actividad_data['armador'])
-            actividad_data['observador'] = models.Persona.objects.get(pk=actividad_data['observador'])
-            actividad_data['ingresado'] = models.Persona.objects.get(pk=actividad_data['ingresado'])
+            data = request.data
 
-            # Crear la actividad principal
-            actividad = models.ActividadPesquera.objects.create(**actividad_data)
+            # Iniciar una transacción para garantizar consistencia
+            with transaction.atomic():
+                # Actualizar ActividadPesquera
+                actividad = models.ActividadPesquera.objects.get(pk=pk)
+                actividad.fecha_salida = data.get('fecha_salida', actividad.fecha_salida)
+                actividad.fecha_entrada = data.get('fecha_entrada', actividad.fecha_entrada)
+                actividad.tipo_arte_pesca = data.get('tipo_arte_pesca', actividad.tipo_arte_pesca)
+                actividad.pesca_objetivo = data.get('pesca_objetivo', actividad.pesca_objetivo)
+                actividad.puerto_salida_id = data.get('puerto_salida', actividad.puerto_salida_id)
+                actividad.puerto_entrada_id = data.get('puerto_entrada', actividad.puerto_entrada_id)
+                actividad.embarcacion_id = data.get('embarcacion', actividad.embarcacion_id)
+                actividad.armador_id = data.get('armador', actividad.armador_id)
+                actividad.capitan_id = data.get('capitan', actividad.capitan_id)
+                actividad.observador_id = data.get('observador', actividad.observador_id)
+                actividad.save()
 
-            # Crear lances asociados
-            for lance_data in lances_data:
-                capturas_data = lance_data.pop('capturas', [])
-                avistamientos_data = lance_data.pop('avistamientos', [])
-                incidencias_data = lance_data.pop('incidencias', [])
-                coordenadas_data = lance_data.pop('coordenadas', None)
-                carnadas_data = lance_data.pop('carnadas', [])
+                # Actualizar Lances y datos anidados
+                for lance_data in data.get('lances', []):
+                    lance, created = models.Lance.objects.update_or_create(
+                        codigo_lance=lance_data.get('codigo_lance'),
+                        actividad=actividad,
+                        defaults={
+                            'numero_lance': lance_data.get('numero_lance'),
+                            'calado_fecha': lance_data.get('calado_fecha'),
+                            'calado_hora': lance_data.get('calado_hora'),
+                            'profundidad_suelo_marino': lance_data.get('profundidad_suelo_marino'),
+                        }
+                    )
 
-                # Crear lance
-                lance = models.Lance.objects.create(actividad=actividad, **lance_data)
+                    # Actualizar Coordenadas
+                    coordenadas_data = lance_data.get('coordenadas')
+                    if coordenadas_data:
+                        models.Coordenadas.objects.update_or_create(
+                            codigo_lance=lance,
+                            defaults={
+                                'latitud_ns': coordenadas_data.get('latitud_ns'),
+                                'latitud_grados': coordenadas_data.get('latitud_grados'),
+                                'latitud_minutos': coordenadas_data.get('latitud_minutos'),
+                                'longitud_w': coordenadas_data.get('longitud_w'),
+                                'longitud_grados': coordenadas_data.get('longitud_grados'),
+                                'longitud_minutos': coordenadas_data.get('longitud_minutos'),
+                            }
+                        )
 
-                # Agregar coordenadas si están presentes
-                if coordenadas_data:
-                    models.Coordenadas.objects.create(lance=lance, **coordenadas_data)
+                    # Actualizar Capturas
+                    for captura_data in lance_data.get('capturas', []):
+                        models.DatosCaptura.objects.update_or_create(
+                            codigo_captura=captura_data.get('codigo_captura'),
+                            lance=lance,
+                            defaults={
+                                'especie_id': captura_data.get('especie'),
+                                'individuos_retenidos': captura_data.get('individuos_retenidos'),
+                                'individuos_descarte': captura_data.get('individuos_descarte'),
+                                'peso_retenido': captura_data.get('peso_retenido'),
+                                'peso_descarte': captura_data.get('peso_descarte'),
+                            }
+                        )
 
-                # Crear detalles según el tipo de lance
-                if 'tipo_lance' in lance_data:
-                    if lance_data['tipo_lance'] == 'palangre':
-                        lance_palangre = models.LancePalangre.objects.create(lance=lance, **lance_data.get('detalles', {}))
-                        for carnada in carnadas_data:
-                            models.LancePalangreCarnadas.objects.create(codigo_lance_palangre=lance_palangre, **carnada)
-                    elif lance_data['tipo_lance'] == 'cerco':
-                        models.LanceCerco.objects.create(lance=lance, **lance_data.get('detalles', {}))
-                    elif lance_data['tipo_lance'] == 'arrastre':
-                        models.LanceArrastre.objects.create(lance=lance, **lance_data.get('detalles', {}))
+                    # Actualizar Avistamientos
+                    for avistamiento_data in lance_data.get('avistamientos', []):
+                        models.Avistamiento.objects.update_or_create(
+                            codigo_avistamiento=avistamiento_data.get('codigo_avistamiento'),
+                            lance=lance,
+                            defaults={
+                                'especie_id': avistamiento_data.get('especie'),
+                                'alimentandose': avistamiento_data.get('alimentandose'),
+                                'deambulando': avistamiento_data.get('deambulando'),
+                                'en_reposo': avistamiento_data.get('en_reposo'),
+                            }
+                        )
 
-                # Crear capturas
-                for captura_data in capturas_data:
-                    models.DatosCaptura.objects.create(lance=lance, **captura_data)
+                    # Actualizar Incidencias
+                    for incidencia_data in lance_data.get('incidencias', []):
+                        incidencia, created = models.Incidencia.objects.update_or_create(
+                            codigo_incidencia=incidencia_data.get('codigo_incidencia'),
+                            lance=lance,
+                            defaults={
+                                'especie_id': incidencia_data.get('especie'),
+                                'herida_grave': incidencia_data.get('herida_grave'),
+                                'herida_leve': incidencia_data.get('herida_leve'),
+                                'muerto': incidencia_data.get('muerto'),
+                                'Totalindividuos': incidencia_data.get('total_individuos'),
+                                'observacion': incidencia_data.get('observacion'),
+                            }
+                        )
 
-                # Crear avistamientos
-                for avistamiento_data in avistamientos_data:
-                    models.Avistamiento.objects.create(lance=lance, **avistamiento_data)
+                        # Actualizar detalles de Incidencia (aves, mamíferos, etc.)
+                        if 'aves' in incidencia_data:
+                            models.IncidenciaAves.objects.update_or_create(
+                                codigo_incidencia=incidencia,
+                                defaults=incidencia_data['aves']
+                            )
+                        if 'mamiferos' in incidencia_data:
+                            models.IncidenciaMamiferos.objects.update_or_create(
+                                codigo_incidencia=incidencia,
+                                defaults=incidencia_data['mamiferos']
+                            )
+                        if 'tortugas' in incidencia_data:
+                            models.IncidenciaTortugas.objects.update_or_create(
+                                codigo_incidencia=incidencia,
+                                defaults=incidencia_data['tortugas']
+                            )
+                        if 'palangre' in incidencia_data:
+                            models.IncidenciaPalangre.objects.update_or_create(
+                                codigo_incidencia=incidencia,
+                                defaults=incidencia_data['palangre']
+                            )
 
-                # Crear incidencias
-                for incidencia_data in incidencias_data:
-                    detalles_data = incidencia_data.pop('detalles', {})
-                    incidencia = models.Incidencia.objects.create(lance=lance, **incidencia_data)
+            return Response({"message": "Actividad y datos relacionados actualizados exitosamente."}, status=status.HTTP_200_OK)
 
-                    # Detalles específicos por tipo
-                    if 'aves' in detalles_data:
-                        models.IncidenciaAves.objects.create(codigo_incidencia=incidencia, **detalles_data['aves'])
-                    if 'mamiferos' in detalles_data:
-                        models.IncidenciaMamiferos.objects.create(codigo_incidencia=incidencia, **detalles_data['mamiferos'])
-                    if 'tortugas' in detalles_data:
-                        models.IncidenciaTortugas.objects.create(codigo_incidencia=incidencia, **detalles_data['tortugas'])
-                    if 'palangre' in detalles_data:
-                        models.IncidenciaPalangre.objects.create(codigo_incidencia=incidencia, **detalles_data['palangre'])
-
-            return Response({"message": "Actividad pesquera añadida exitosamente."}, status=status.HTTP_201_CREATED)
-
+        except models.ActividadPesquera.DoesNotExist:
+            return Response({"error": "Actividad no encontrada."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # CRUD para Tipo de Carnada
@@ -524,44 +409,6 @@ class LanceViewSet(SchemaMixin, viewsets.ModelViewSet):
     queryset = models.Lance.objects.all()
     serializer_class = serializers.LanceSerializer
     
-@action(detail=True, methods=['post'], url_path='add-lance')
-def add_lance(self, request, pk=None):
-    """
-    Agrega un nuevo lance a una actividad pesquera existente.
-    """
-    try:
-        # Obtener la actividad pesquera existente
-        actividad = self.get_object()
-
-        # Validar y guardar los datos del lance
-        lance_data = request.data
-        lance_data['actividad'] = actividad.codigo_actividad  # Vincular el lance a la actividad
-        lance_serializer = serializers.LanceSerializer(data=lance_data)
-        lance_serializer.is_valid(raise_exception=True)
-        lance = lance_serializer.save()
-
-        # Manejar datos adicionales según el tipo de lance
-        if lance_data.get('tipo') == 'palangre':
-            palangre_serializer = serializers.LancePalangreSerializer(data=lance_data.get('palangre'))
-            palangre_serializer.is_valid(raise_exception=True)
-            palangre_serializer.save(codigo_lance=lance)
-
-        elif lance_data.get('tipo') == 'arrastre':
-            arrastre_serializer = serializers.LanceArrastreSerializer(data=lance_data.get('arrastre'))
-            arrastre_serializer.is_valid(raise_exception=True)
-            arrastre_serializer.save(codigo_lance=lance)
-
-        elif lance_data.get('tipo') == 'cerco':
-            cerco_serializer = serializers.LanceCercoSerializer(data=lance_data.get('cerco'))
-            cerco_serializer.is_valid(raise_exception=True)
-            cerco_serializer.save(codigo_lance=lance)
-
-        return Response({"message": "Lance agregado correctamente."}, status=status.HTTP_201_CREATED)
-
-    except ValidationError as e:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    except models.ActividadPesquera.DoesNotExist:
-        return Response({"error": "Actividad no encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
 
 # CRUD para Datos de Captura

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../routes/api'; // Importar Axios
 import './Home.css';
 
 const Home = () => {
@@ -11,12 +12,11 @@ const Home = () => {
   useEffect(() => {
     const fetchKpi = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/kpi-home/');
-        if (!response.ok) throw new Error('Error al obtener los KPIs.');
-        const data = await response.json();
-        setKpi(data);
+        setLoading(true);
+        const response = await api.get('/kpi-home/'); // Cambiado a Axios
+        setKpi(response.data); // Configura el estado con los datos de la API
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Error al obtener los KPIs.');
       } finally {
         setLoading(false);
       }

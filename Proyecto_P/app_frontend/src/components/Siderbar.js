@@ -28,23 +28,9 @@ const Sidebar = () => {
           <Dashboard style={{ marginRight: '10px' }} /> Dashboard
         </ListGroupItem>
         {/* Submenú para Map */}
-        <ListGroupItem action onClick={toggleMapSubMenu}>
+        <ListGroupItem  tag={NavLink} to="/mapa" action>
           <Map style={{ marginRight: '10px' }} /> Map
-          {isMapSubMenuOpen ? <ExpandLess style={{ float: 'right' }} /> : <ExpandMore style={{ float: 'right' }} />}
         </ListGroupItem>
-        <Collapse isOpen={isMapSubMenuOpen}>
-          <ListGroup flush className="pl-4">
-            <ListGroupItem tag={NavLink} to="/mapacaptura" action>
-              Mapa Captura
-            </ListGroupItem>
-            <ListGroupItem tag={NavLink} to="/mapaavistamiento" tipo={"a"} action>
-              Mapa Incidencia
-            </ListGroupItem>
-            <ListGroupItem tag={NavLink} to="/mapaincidencia" action>
-              Mapa Avistamiento
-            </ListGroupItem>
-          </ListGroup>
-        </Collapse>
         <ListGroupItem tag={NavLink} to="/reporte" action>
           <ReceiptIcon style={{ marginRight: '10px' }} /> Report
         </ListGroupItem>

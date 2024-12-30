@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert } from '@mui/material';
+import api from '../../routes/api';
+
 
 const RegisterUser = ({ open, handleClose }) => {
   const [username, setUsername] = useState('');
@@ -23,8 +24,8 @@ const RegisterUser = ({ open, handleClose }) => {
     try {
       const token = localStorage.getItem('access_token');
 
-      await axios.post(
-        'http://localhost:8000/api/users/register/',
+      await api.post(
+        '/users/register/',
         { username, email, password },
         {
           headers: {

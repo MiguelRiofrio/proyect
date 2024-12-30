@@ -18,4 +18,8 @@ router.register(r'incidencias', IncidenciaViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('taxas/', taxa_list, name='taxa-list'),
+    path('actividades/<int:pk>/edit/', EditarActividadCompleta.as_view(), name='editar-actividad'),
+
+
 ]

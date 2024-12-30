@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Button, Table, Modal, ModalHeader, ModalBody, ModalFooter, Spinner, Alert } from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import api from '../../routes/api';
 
 const ActividadPesqueraList = () => {
   const [actividades, setActividades] = useState([]);
@@ -19,7 +19,7 @@ const ActividadPesqueraList = () => {
   const fetchActividades = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/crud/actividades/list/');
+      const response = await api.get('/crud/actividades/list/');
       setActividades(response.data);
       setError(null);
     } catch (error) {
@@ -31,7 +31,7 @@ const ActividadPesqueraList = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/crud/actividades/${id}/`);
+      await api.delete(`/crud/actividades/${id}/`);
       alert('Actividad pesquera eliminada con éxito');
       fetchActividades(); // Recargar actividades después de eliminar
     } catch (error) {

@@ -1,8 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: 'http://localhost:8000/api/crud', // Cambia la URL según tu backend
-});
+import api from "../../../routes/api";
 
 // Exportaciones con nombre
 export const getData = (endpoint) => api.get(endpoint);

@@ -1,199 +1,140 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useParams, useNavigate } from "react-router-dom";
-import { Button, Table, Card, CardBody, CardHeader, Input } from "reactstrap";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Button, Form, FormGroup, Label, Input, Alert } from 'reactstrap';
+import api from '../../routes/api';
 
 const EditarActividadPesquera = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [actividad, setActividad] = useState(null);
-  const [editedActividad, setEditedActividad] = useState({});
-  const [armadores, setArmadores] = useState([]);
-  const [puertos, setPuertos] = useState([]);
-  const [embarcaciones, setEmbarcaciones] = useState([]);
-  const [capitanes, setCapitanes] = useState([]);
-  const [observadores, setObservadores] = useState([]);
-
-  const fetchData = async () => {
-    try {
-      const [actividadRes, personasRes, puertosRes, embarcacionesRes] = await Promise.all([
-        axios.get(`http://localhost:8000/api/crud/actividades/${id}/details/`),
-        axios.get("http://localhost:8000/api/crud/personas/"),
-        axios.get("http://localhost:8000/api/crud/puertos/"),
-        axios.get("http://localhost:8000/api/crud/embarcaciones/"),
-      ]);
-
-      const actividadData = actividadRes.data;
-
-      setActividad(actividadData);
-      setEditedActividad({
-        codigo_actividad: actividadData.codigo_actividad,
-        fecha_salida: actividadData.fecha_salida,
-        fecha_entrada: actividadData.fecha_entrada,
-        tipo_arte_pesca: actividadData.tipo_arte_pesca,
-        pesca_objetivo: actividadData.pesca_objetivo,
-        puerto_salida: actividadData.puerto_salida?.id || null,
-        puerto_entrada: actividadData.puerto_entrada?.id || null,
-        embarcacion: actividadData.embarcacion?.codigo_embarcacion || null,
-        armador: actividadData.armador?.id || null,
-        capitan: actividadData.capitan?.id || null,
-        observador: actividadData.observador?.id || null,
-        puerto_salida_nombre: actividadData.puerto_salida?.nombre || "",
-        puerto_entrada_nombre: actividadData.puerto_entrada?.nombre || "",
-        ingresado_por: actividadData.ingresado_por || "",
-      });
-
-      setArmadores(personasRes.data.filter((persona) => persona.rol === "Armador"));
-      setCapitanes(personasRes.data.filter((persona) => persona.rol === "CAPITAN"));
-      setObservadores(personasRes.data.filter((persona) => persona.rol === "Observador"));
-      setPuertos(puertosRes.data);
-      setEmbarcaciones(embarcacionesRes.data);
-
-    } catch (error) {
-      console.error("Error al cargar los datos:", error);
-    }
-  };
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const fetchActividad = async () => {
+      try {
+        const response = await api.get(`/crud/actividades/${id}/details/`);
+        setActividad(response.data);
+      } catch (error) {
+        setError('Error al cargar los datos de la actividad.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchActividad();
+  }, [id]);
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setEditedActividad({
-      ...editedActividad,
-      [name]: value,
-    });
+    setActividad({ ...actividad, [name]: value });
   };
 
-  const saveChanges = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
-      const processedData = {
-        codigo_actividad: editedActividad.codigo_actividad,
-        fecha_salida: editedActividad.fecha_salida,
-        fecha_entrada: editedActividad.fecha_entrada,
-        tipo_arte_pesca: editedActividad.tipo_arte_pesca,
-        pesca_objetivo: editedActividad.pesca_objetivo,
-        puerto_salida: parseInt(editedActividad.puerto_salida),
-        puerto_entrada: parseInt(editedActividad.puerto_entrada),
-        embarcacion: parseInt(editedActividad.embarcacion),
-        armador: parseInt(editedActividad.armador),
-        capitan: parseInt(editedActividad.capitan),
-        observador: parseInt(editedActividad.observador),
-      };
-      console.log('Datos procesados que se enviarán:', JSON.stringify(processedData, null, 2));  
-      await axios.put(`http://localhost:8000/api/crud/actividades/${id}/edit-details/`, processedData);
-      alert("Cambios guardados con éxito");
-      navigate(`/detalle/${id}`);
+      await api.put(`/crud/actividades/${id}/edit/`, actividad);
+      navigate('/actividades');
     } catch (error) {
-      console.error("Error al guardar los cambios:", error);
-      alert("Error al guardar los cambios");
+      setError('Error al guardar los cambios.');
     }
   };
 
-  if (!actividad || !armadores.length || !puertos.length || !embarcaciones.length || !capitanes.length || !observadores.length) {
-    return <div className="text-center">Cargando datos...</div>;
-  }
+  if (loading) return <p>Cargando...</p>;
+  if (error) return <Alert color="danger">{error}</Alert>;
 
   return (
     <div className="container mt-5">
-      <h1 className="text-center mb-4">Editar Actividad Pesquera</h1>
-
-      <Card className="mb-5 shadow-lg border-0 rounded">
-        <CardHeader className="bg-dark text-white text-center p-3">
-          <h4 className="mb-0">Formulario de Edición</h4>
-        </CardHeader>
-        <CardBody className="bg-light">
-          <Table bordered>
-            <thead>
-              <tr>
-                <th>Fecha de Salida</th>
-                <th>Puerto de Salida</th>
-                <th>Fecha de Entrada</th>
-                <th>Puerto de Entrada</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><Input type="date" name="fecha_salida" value={editedActividad.fecha_salida || ""} onChange={handleInputChange} /></td>
-                <td><Input type="select" name="puerto_salida" value={editedActividad.puerto_salida || ""} onChange={handleInputChange}>
-                  {puertos.map((puerto) => (
-                    <option key={puerto.codigo_puerto} value={puerto.codigo_puerto}>{puerto.nombre_puerto}</option>
-                  ))}
-                </Input></td>
-                <td><Input type="date" name="fecha_entrada" value={editedActividad.fecha_entrada || ""} onChange={handleInputChange} /></td>
-                <td><Input type="select" name="puerto_entrada" value={editedActividad.puerto_entrada || ""} onChange={handleInputChange}>
-                  {puertos.map((puerto) => (
-                    <option key={puerto.codigo_puerto} value={puerto.codigo_puerto}>{puerto.nombre_puerto}</option>
-                  ))}
-                </Input></td>
-              </tr>
-            </tbody>
-            <thead>
-              <tr>
-                <th>Embarcación</th>
-                <th>Capitán</th>
-                <th>Armador</th>
-                <th>Observador</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><Input type="select" name="embarcacion" value={editedActividad.embarcacion || ""} onChange={handleInputChange}>
-                  {embarcaciones.map((embarcacion) => (
-                    <option key={embarcacion.codigo_embarcacion} value={embarcacion.codigo_embarcacion}>{embarcacion.nombre_embarcacion}</option>
-                  ))}
-                </Input></td>
-                <td><Input type="select" name="capitan" value={editedActividad.capitan || ""} onChange={handleInputChange}>
-                  {capitanes.map((capitan) => (
-                    <option key={capitan.codigo_persona} value={capitan.codigo_persona}>{capitan.nombre}</option>
-                  ))}
-                </Input></td>
-                <td><Input type="select" name="armador" value={editedActividad.armador || ""} onChange={handleInputChange}>
-                  {armadores.map((armador) => (
-                    <option key={armador.codigo_persona} value={armador.codigo_persona}>{armador.nombre}</option>
-                  ))}
-                </Input></td>
-                <td><Input type="select" name="observador" value={editedActividad.observador || ""} onChange={handleInputChange}>
-                  {observadores.map((observador) => (
-                    <option key={observador.codigo_persona} value={observador.codigo_persona}>{observador.nombre}</option>
-                  ))}
-                </Input></td>
-              </tr>
-            </tbody>
-            <thead>
-              <tr>
-                <th>Tipo de Arte</th>
-                <th>Pesca Objetivo</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><Input type="select" name="tipo_arte_pesca" value={editedActividad.tipo_arte_pesca || ""} onChange={handleInputChange}>
-                  <option value="Palangre">Palangre</option>
-                  <option value="Cerco">Cerco</option>
-                  <option value="Arrastre">Arrastre</option>
-                </Input></td>
-                <td><Input type="select" name="pesca_objetivo" value={editedActividad.pesca_objetivo || ""} onChange={handleInputChange}>
-                  <option value="PPP">PPP</option>
-                  <option value="PPG">PPG</option>
-                </Input></td>
-               
-              </tr>
-            </tbody>
-          </Table>
-        </CardBody>
-      </Card>
-
-      <div className="text-center mt-4">
-        <Button color="success" onClick={saveChanges}>
+      <h1 className="text-center">Editar Actividad Pesquera</h1>
+      <Form onSubmit={handleSubmit}>
+        <FormGroup>
+          <Label for="fecha_salida">Fecha de Salida</Label>
+          <Input
+            type="date"
+            name="fecha_salida"
+            value={actividad.fecha_salida || ''}
+            onChange={handleChange}
+          />
+        </FormGroup>
+        <FormGroup>
+          <Label for="fecha_entrada">Fecha de Entrada</Label>
+          <Input
+            type="date"
+            name="fecha_entrada"
+            value={actividad.fecha_entrada || ''}
+            onChange={handleChange}
+          />
+        </FormGroup>
+        <FormGroup>
+          <Label for="matricula">Matrícula</Label>
+          <Input
+            type="text"
+            name="matricula"
+            value={actividad.matricula || ''}
+            onChange={handleChange}
+          />
+        </FormGroup>
+        <FormGroup>
+          <Label for="tipo_de_palangre">Tipo de Palangre</Label>
+          <Input
+            type="text"
+            name="tipo_de_palangre"
+            value={actividad.tipo_de_palangre || ''}
+            onChange={handleChange}
+          />
+        </FormGroup>
+        <FormGroup>
+          <Label for="tipo_de_flota">Tipo de Flota</Label>
+          <Input
+            type="text"
+            name="tipo_de_flota"
+            value={actividad.tipo_de_flota || ''}
+            onChange={handleChange}
+          />
+        </FormGroup>
+        <FormGroup>
+          <Label for="puerto_salida">Puerto de Salida</Label>
+          <Input
+            type="text"
+            name="puerto_salida"
+            value={actividad.puerto_salida || ''}
+            onChange={handleChange}
+          />
+        </FormGroup>
+        <FormGroup>
+          <Label for="puerto_entrada">Puerto de Entrada</Label>
+          <Input
+            type="text"
+            name="puerto_entrada"
+            value={actividad.puerto_entrada || ''}
+            onChange={handleChange}
+          />
+        </FormGroup>
+        <FormGroup>
+          <Label for="tipo_arte_pesca">Tipo de Arte de Pesca</Label>
+          <Input
+            type="text"
+            name="tipo_arte_pesca"
+            value={actividad.tipo_arte_pesca || ''}
+            onChange={handleChange}
+          />
+        </FormGroup>
+        <FormGroup>
+          <Label for="pesca_objetivo">Pesca Objetivo</Label>
+          <Input
+            type="text"
+            name="pesca_objetivo"
+            value={actividad.pesca_objetivo || ''}
+            onChange={handleChange}
+          />
+        </FormGroup>
+        {/* Agregar más campos según sea necesario */}
+        <Button color="primary" type="submit">
           Guardar Cambios
         </Button>
-        <Button color="secondary" onClick={() => navigate("/actividadeslist")}>
-          Volver a la Lista
+        <Button color="secondary" onClick={() => navigate('/actividades')} className="ms-3">
+          Cancelar
         </Button>
-      </div>
+      </Form>
     </div>
   );
 };

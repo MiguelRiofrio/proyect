@@ -18,11 +18,14 @@ class Embarcacion(models.Model):
     nombre_embarcacion = models.CharField(max_length=100, default="Sin nombre")
     matricula = models.CharField(max_length=50, default="Sin matrícula")
 
+class Grupo(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
 
 class Especie(models.Model):
     codigo_especie = models.IntegerField( primary_key=True, default=0)
     taxa = models.CharField(max_length=100, null=True, blank=True, default="Sin taxa")
     genero = models.CharField(max_length=100, null=True, blank=True, default="Sin género")
+    grupo = models.ForeignKey(Grupo, on_delete=models.SET_NULL, null=True, blank=True)  # Relación con Grupo
     especie = models.CharField(max_length=100, null=True, blank=True, default="Sin especie")
     nombre_cientifico = models.CharField(max_length=150, null=True, blank=True, default="Sin nombre científico")
     nombre_comun = models.CharField(max_length=150, null=True, blank=True, default="Sin nombre común")
@@ -102,7 +105,6 @@ class Avistamiento(models.Model):
     codigo_avistamiento = models.CharField(max_length=50, primary_key=True, default="default_avistamiento")
     lance = models.ForeignKey(Lance, on_delete=models.CASCADE, null=True, default=None)
     especie = models.ForeignKey(Especie, on_delete=models.CASCADE, null=True, default=None)
-    grupos_avi_int = models.CharField(max_length=100, default="Sin grupo")
     alimentandose = models.IntegerField(default=0)
     deambulando = models.IntegerField(default=0)
     en_reposo = models.IntegerField(default=0)
@@ -111,7 +113,6 @@ class Incidencia(models.Model):
     codigo_incidencia = models.CharField(max_length=50, primary_key=True)
     lance = models.ForeignKey(Lance, on_delete=models.CASCADE, null=True)
     especie = models.ForeignKey(Especie, on_delete=models.CASCADE, null=True)
-    grupos_avi_int = models.CharField(max_length=100, null=True, blank=True, default="Sin grupo")
     herida_grave = models.IntegerField(default=0)
     herida_leve = models.IntegerField(default=0)
     muerto = models.IntegerField(default=0)

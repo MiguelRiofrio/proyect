@@ -1,11 +1,11 @@
-from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.decorators import action, api_view
-from .. import models, serializers
-from django.db.models import Sum, Count, Avg
+from rest_framework.decorators import api_view
+from .. import models
+from django.db.models import Sum, Avg,Q
 import numpy as np
 from sklearn.linear_model import LinearRegression
- 
+from django.db.models.functions import ExtractYear 
+
 @api_view(['GET'])
 def dashboard_data(request):
     # Filtro por embarcación
@@ -73,111 +73,6 @@ def dashboard_data(request):
     return Response(data)
 
 @api_view(['GET'])
-def coordenadas_general(request):
-    """
-    API para obtener las coordenadas en formato decimal de especies capturadas, avistamientos e incidencias.
-    Adaptado a la relación OneToOne entre Lance y Coordenadas.
-    """
-    def convertir_coordenadas(ns, grados, minutos):
-        """
-        Convierte las coordenadas en formato NS/EW, Grados y Minutos a decimal.
-        """
-        decimal = float(grados) + float(minutos) / 60
-        if ns.lower() in ['s', 'w']:
-            decimal = -decimal
-        return round(decimal, 4)
-
-    # Consultar datos de capturas
-    capturas = models.DatosCaptura.objects.select_related('especie', 'lance__coordenadas').all()
-
-    # Consultar datos de avistamientos
-    avistamientos = models.Avistamiento.objects.select_related('especie', 'lance__coordenadas').all()
-
-    # Consultar datos de incidencias
-    incidencias = models.Incidencia.objects.select_related('especie', 'lance__coordenadas').all()
-
-    # Crear el formato de salida
-    data = {
-        "capturas": [],
-        "avistamientos": [],
-        "incidencias": []
-    }
-
-    # Procesar capturas
-    for captura in capturas:
-        if captura.lance:
-            coordenadas = getattr(captura.lance, 'coordenadas', None)
-            if coordenadas:
-                latitud_decimal = convertir_coordenadas(
-                    coordenadas.latitud_ns,
-                    coordenadas.latitud_grados,
-                    coordenadas.latitud_minutos
-                )
-                longitud_decimal = convertir_coordenadas(
-                    coordenadas.longitud_w,
-                    coordenadas.longitud_grados,
-                    coordenadas.longitud_minutos
-                )
-                data["capturas"].append({
-                    "especie": captura.especie.nombre_cientifico,
-                    "lance": captura.lance.codigo_lance,
-                    "nombre_comun": captura.especie.nombre_comun,
-                    "latitud": latitud_decimal,
-                    "longitud": longitud_decimal,
-                    "total": captura.individuos_retenidos + captura.individuos_descarte
-                })
-
-    # Procesar avistamientos
-    for avistamiento in avistamientos:
-        if avistamiento.lance:
-            coordenadas = getattr(avistamiento.lance, 'coordenadas', None)
-            if coordenadas:
-                latitud_decimal = convertir_coordenadas(
-                    coordenadas.latitud_ns,
-                    coordenadas.latitud_grados,
-                    coordenadas.latitud_minutos
-                )
-                longitud_decimal = convertir_coordenadas(
-                    coordenadas.longitud_w,
-                    coordenadas.longitud_grados,
-                    coordenadas.longitud_minutos
-                )
-                data["avistamientos"].append({
-                    "especie": avistamiento.especie.nombre_cientifico,
-                    "nombre_comun": avistamiento.especie.nombre_comun,
-                    "lance": avistamiento.lance.codigo_lance,
-                    "latitud": latitud_decimal,
-                    "longitud": longitud_decimal,
-                })
-
-    # Procesar incidencias
-    for incidencia in incidencias:
-        if incidencia.lance:
-            coordenadas = getattr(incidencia.lance, 'coordenadas', None)
-            if coordenadas:
-                latitud_decimal = convertir_coordenadas(
-                    coordenadas.latitud_ns,
-                    coordenadas.latitud_grados,
-                    coordenadas.latitud_minutos
-                )
-                longitud_decimal = convertir_coordenadas(
-                    coordenadas.longitud_w,
-                    coordenadas.longitud_grados,
-                    coordenadas.longitud_minutos
-                )
-                data["incidencias"].append({
-                    "especie": incidencia.especie.nombre_cientifico,
-                    "nombre_comun": incidencia.especie.nombre_comun,
-                    "lance": incidencia.lance.codigo_lance,
-                    "latitud": latitud_decimal,
-                    "longitud": longitud_decimal,
-                })
-
-    return Response(data)
-
-
-
-@api_view(['GET'])
 def kpi_home(request):
     """
     API para calcular KPIs para la página principal.
@@ -223,8 +118,6 @@ def kpi_home(request):
 
     return Response(data)
 
-
-
 @api_view(['GET'])
 def top_especies(request):
     """
@@ -256,3 +149,129 @@ def top_especies(request):
         'top_avistamientos': list(avistamientos),
         'top_incidencias': list(incidencias),
     })
+
+
+@api_view(['GET'])
+def coordenadas_general(request):
+    """
+    API para obtener las coordenadas en formato decimal de especies capturadas, avistamientos e incidencias.
+    Adaptado a la relación OneToOne entre Lance y Coordenadas, con soporte para filtrar por taxa y profundidad_suelo_marino.
+    """
+    def convertir_coordenadas(ns, grados, minutos):
+        """
+        Convierte las coordenadas en formato NS/EW, Grados y Minutos a decimal.
+        """
+        decimal = float(grados) + float(minutos) / 60
+        if ns.lower() in ['s', 'w']:
+            decimal = -decimal
+        return round(decimal, 4)
+
+    # Obtener filtros del request
+    taxa_filtro = request.query_params.get('taxa', None)
+    profundidad_filtro = request.query_params.get('profundidad_suelo_marino', None)
+
+    # Consultar datos de capturas
+    capturas = models.DatosCaptura.objects.select_related('especie', 'lance__coordenadas').all()
+    if taxa_filtro:
+        capturas = capturas.filter(especie__taxa=taxa_filtro)
+    if profundidad_filtro:
+        capturas = capturas.filter(lance__profundidad_suelo_marino=profundidad_filtro)
+
+    # Consultar datos de avistamientos
+    avistamientos = models.Avistamiento.objects.select_related('especie', 'lance__coordenadas').all()
+    if taxa_filtro:
+        avistamientos = avistamientos.filter(especie__taxa=taxa_filtro)
+    if profundidad_filtro:
+        avistamientos = avistamientos.filter(lance__profundidad_suelo_marino=profundidad_filtro)
+
+    # Consultar datos de incidencias
+    incidencias = models.Incidencia.objects.select_related('especie', 'lance__coordenadas').all()
+    if taxa_filtro:
+        incidencias = incidencias.filter(especie__taxa=taxa_filtro)
+    if profundidad_filtro:
+        incidencias = incidencias.filter(lance__profundidad_suelo_marino=profundidad_filtro)
+
+    # Crear el formato de salida
+    data = {
+        "capturas": [],
+        "avistamientos": [],
+        "incidencias": []
+    }
+
+    # Procesar capturas
+    for captura in capturas:
+        if captura.lance:
+            coordenadas = getattr(captura.lance, 'coordenadas', None)
+            if coordenadas:
+                latitud_decimal = convertir_coordenadas(
+                    coordenadas.latitud_ns,
+                    coordenadas.latitud_grados,
+                    coordenadas.latitud_minutos
+                )
+                longitud_decimal = convertir_coordenadas(
+                    coordenadas.longitud_w,
+                    coordenadas.longitud_grados,
+                    coordenadas.longitud_minutos
+                )
+                data["capturas"].append({
+                    "especie": captura.especie.nombre_cientifico,
+                    "lance": captura.lance.codigo_lance,
+                    "nombre_comun": captura.especie.nombre_comun,
+                    "latitud": latitud_decimal,
+                    "longitud": longitud_decimal,
+                    "total": captura.individuos_retenidos + captura.individuos_descarte,
+                    "profundidad_suelo_marino": captura.lance.profundidad_suelo_marino,
+                    "taxa": captura.especie.taxa
+                })
+
+    # Procesar avistamientos
+    for avistamiento in avistamientos:
+        if avistamiento.lance:
+            coordenadas = getattr(avistamiento.lance, 'coordenadas', None)
+            if coordenadas:
+                latitud_decimal = convertir_coordenadas(
+                    coordenadas.latitud_ns,
+                    coordenadas.latitud_grados,
+                    coordenadas.latitud_minutos
+                )
+                longitud_decimal = convertir_coordenadas(
+                    coordenadas.longitud_w,
+                    coordenadas.longitud_grados,
+                    coordenadas.longitud_minutos
+                )
+                data["avistamientos"].append({
+                    "especie": avistamiento.especie.nombre_cientifico,
+                    "nombre_comun": avistamiento.especie.nombre_comun,
+                    "lance": avistamiento.lance.codigo_lance,
+                    "latitud": latitud_decimal,
+                    "longitud": longitud_decimal,
+                    "profundidad_suelo_marino": avistamiento.lance.profundidad_suelo_marino,
+                    "taxa": avistamiento.especie.taxa
+                })
+
+    # Procesar incidencias
+    for incidencia in incidencias:
+        if incidencia.lance:
+            coordenadas = getattr(incidencia.lance, 'coordenadas', None)
+            if coordenadas:
+                latitud_decimal = convertir_coordenadas(
+                    coordenadas.latitud_ns,
+                    coordenadas.latitud_grados,
+                    coordenadas.latitud_minutos
+                )
+                longitud_decimal = convertir_coordenadas(
+                    coordenadas.longitud_w,
+                    coordenadas.longitud_grados,
+                    coordenadas.longitud_minutos
+                )
+                data["incidencias"].append({
+                    "especie": incidencia.especie.nombre_cientifico,
+                    "nombre_comun": incidencia.especie.nombre_comun,
+                    "lance": incidencia.lance.codigo_lance,
+                    "latitud": latitud_decimal,
+                    "longitud": longitud_decimal,
+                    "profundidad_suelo_marino": incidencia.lance.profundidad_suelo_marino,
+                    "taxa": incidencia.especie.taxa
+                })
+
+    return Response(data)

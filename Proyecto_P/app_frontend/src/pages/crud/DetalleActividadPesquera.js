@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, TabContent, TabPane, Nav, NavItem, NavLink, Table, Card, CardBody, CardHeader } from 'reactstrap';
 import classnames from 'classnames';
 import './style/DetalleActividad.css'; // Archivo CSS para estilos personalizados
+import api from '../../routes/api'
 
 const DetalleActividadPesquera = () => {
   const { id } = useParams(); // ID de la actividad
@@ -13,19 +13,20 @@ const DetalleActividadPesquera = () => {
   const navigate = useNavigate();
 
 
-  const fetchDetalleActividad = async () => {
-    try {
-      const response = await axios.get(`http://localhost:8000/api/crud/actividades/${id}/details/`);
-      setActividad(response.data);
-      setLances(response.data.lances || []);
-    } catch (error) {
-      console.error('Error al obtener los detalles de la actividad:', error);
-    }
-  };
+  
   
   useEffect(() => {
+    const fetchDetalleActividad = async () => {
+      try {
+        const response = await api.get(`/crud/actividades/${id}/details/`);
+        setActividad(response.data);
+        setLances(response.data.lances || []);
+      } catch (error) {
+        console.error('Error al obtener los detalles de la actividad:', error);
+      }
+    };
     fetchDetalleActividad();
-  }, []);
+  }, [id]);
 
   const toggleTab = (tab) => {
     if (activeTab !== tab) {

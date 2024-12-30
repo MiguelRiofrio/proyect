@@ -51,7 +51,6 @@ const AgregarActividadPesquera = () => {
 
     console.log("Datos procesados a enviar:", procesarDatos);
     try {
-      const response = await axios.post("http://localhost:8000/api/crud/actividades/create_details/", procesarDatos);
       console.log("Respuesta del servidor:", response.data);
 
       // Redirigir al usuario o mostrar un mensaje de éxito
