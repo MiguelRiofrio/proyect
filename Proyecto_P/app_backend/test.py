@@ -72,6 +72,7 @@ class APITestSuite(APITestCase):
     def test_dashboard_data(self):
         """Probar que el endpoint de dashboard devuelva datos correctos"""
         response = self.client.get("/api/dashboard/")
+        print("Response data (dashboard):", response.data)  # Agregar print para evidencia
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["total_actividades"], 1)
         self.assertEqual(response.data["total_retenido"], 100.0)
@@ -81,6 +82,7 @@ class APITestSuite(APITestCase):
     def test_kpi_home(self):
         """Probar que el endpoint de KPI devuelva datos clave"""
         response = self.client.get("/api/kpi-home/")
+        print("Response data (KPI Home):", response.data)  # Agregar print para evidencia
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["total_especies"], 1)
         self.assertEqual(response.data["total_avistamientos"], 10)  # 5 alimentándose + 3 deambulando + 2 en reposo
@@ -90,6 +92,7 @@ class APITestSuite(APITestCase):
     def test_top_especies(self):
         """Probar que el endpoint de top especies devuelva el top esperado"""
         response = self.client.get("/api/top-especies/")
+        print("Response data (Top Especies):", response.data)  # Agregar print para evidencia
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["top_capturas"]), 1)
         self.assertEqual(response.data["top_capturas"][0]["especie__nombre_cientifico"], "Thunnus albacares")
@@ -98,6 +101,7 @@ class APITestSuite(APITestCase):
     def test_coordenadas_general(self):
         """Probar que el endpoint de localización de especies devuelva las coordenadas correctas"""
         response = self.client.get("/api/localizacion_especies/")
+        print("Response data (Coordenadas General):", response.data)  # Agregar print para evidencia
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["capturas"]), 1)
         self.assertEqual(response.data["capturas"][0]["latitud"], 10.5)
@@ -107,12 +111,14 @@ class APITestSuite(APITestCase):
     def test_filtrado_dashboard(self):
         """Probar que el endpoint de dashboard funcione con filtros"""
         response = self.client.get("/api/dashboard/?embarcacion=Embarcacion1")
+        print("Response data (Filtrado Dashboard):", response.data)  # Agregar print para evidencia
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["total_actividades"], 1)
 
     def test_areas_mayor_avistamiento(self):
         """Probar que el endpoint devuelva áreas con mayor número de avistamientos"""
         response = self.client.get("/api/localizacion_especies_a/?geojson=true")
+        print("Response data (Áreas Mayor Avistamiento):", response.data)  # Agregar print para evidencia
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["areas_mayor_avistamiento"]), 1)
         self.assertEqual(response.data["areas_mayor_avistamiento"][0]["total_avistamientos"], 10)

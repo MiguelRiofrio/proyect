@@ -13,7 +13,7 @@ urlpatterns = [
     path('top-especies/', views.top_especies, name='top_especies'),
     path('kpi-home/', views.kpi_home, name='kpi_home'),
     path('localizacion_especies/', views.coordenadas_general, name='localizacion'),
-    path('localizacion_especies_a/', views.coordenadas_general1, name='localizacion'),
+    path('localizacion_especies_a/', views.areas_mayor_avistamiento, name='localizacion'),
 
 
 ]
