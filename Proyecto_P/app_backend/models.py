@@ -18,14 +18,11 @@ class Embarcacion(models.Model):
     nombre_embarcacion = models.CharField(max_length=100, default="Sin nombre")
     matricula = models.CharField(max_length=50, default="Sin matrícula")
 
-class Grupo(models.Model):
-    nombre = models.CharField(max_length=100, unique=True)
 
 class Especie(models.Model):
     codigo_especie = models.IntegerField( primary_key=True, default=0)
     taxa = models.CharField(max_length=100, null=True, blank=True, default="Sin taxa")
     genero = models.CharField(max_length=100, null=True, blank=True, default="Sin género")
-    grupo = models.ForeignKey(Grupo, on_delete=models.SET_NULL, null=True, blank=True)  # Relación con Grupo
     especie = models.CharField(max_length=100, null=True, blank=True, default="Sin especie")
     nombre_cientifico = models.CharField(max_length=150, null=True, blank=True, default="Sin nombre científico")
     nombre_comun = models.CharField(max_length=150, null=True, blank=True, default="Sin nombre común")

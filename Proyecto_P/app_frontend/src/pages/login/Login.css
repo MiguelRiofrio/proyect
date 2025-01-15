@@ -1,9 +1,16 @@
 /* Fondo con degradado */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 0%;
+}
+
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  min-height: 100vh; /* Asegura que abarque toda la ventana */
+  height: 100vh; /* Ajusta para cubrir exactamente el alto de la ventana */
   background: linear-gradient(120deg, #e8e8e8, #f0f0f0);
   font-family: 'Roboto', sans-serif;
 }

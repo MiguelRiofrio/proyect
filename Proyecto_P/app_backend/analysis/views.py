@@ -150,6 +150,82 @@ def top_especies(request):
         'top_incidencias': list(incidencias),
     })
 
+@api_view(['GET'])
+def coordenadas_general1(request):
+    """
+    API para obtener las coordenadas en formato decimal de especies capturadas, avistamientos e incidencias.
+    Adaptado a la relación OneToOne entre Lance y Coordenadas, con soporte para filtrar por taxa, profundidad_suelo_marino y región.
+    """
+
+    def convertir_coordenadas(ns, grados, minutos):
+        """
+        Convierte las coordenadas en formato NS/EW, Grados y Minutos a decimal.
+        """
+        decimal = float(grados) + float(minutos) / 60
+        if ns.lower() in ['s', 'w']:
+            decimal = -decimal
+        return round(decimal, 4)
+
+    # Obtener filtros del request
+    taxa_filtro = request.query_params.get('taxa', None)
+    profundidad_filtro = request.query_params.get('profundidad_suelo_marino', None)
+    region_filtro = request.query_params.get('region', None)
+    formato_geojson = request.query_params.get('geojson', 'false').lower() == 'true'
+
+    # Consultar datos de avistamientos
+    avistamientos = models.Avistamiento.objects.select_related('especie', 'lance__coordenadas').all()
+    if taxa_filtro:
+        avistamientos = avistamientos.filter(especie__taxa=taxa_filtro)
+    if profundidad_filtro:
+        avistamientos = avistamientos.filter(lance__profundidad_suelo_marino=profundidad_filtro)
+    if region_filtro:
+        avistamientos = avistamientos.filter(lance__actividad__puerto_salida__nombre_puerto=region_filtro)
+
+    # Calcular las áreas con mayor número de avistamientos
+    areas_mayor_avistamiento = (
+        avistamientos
+        .values('lance__coordenadas__latitud_grados', 'lance__coordenadas__longitud_grados')
+        .annotate(total_avistamientos=Sum('alimentandose') + Sum('deambulando') + Sum('en_reposo'))
+        .order_by('-total_avistamientos')[:10]
+    )
+
+    # Convertir el resultado a una lista de dictados
+    areas_mayor_avistamiento_list = [
+        {
+            "latitud_grados": area['lance__coordenadas__latitud_grados'],
+            "longitud_grados": area['lance__coordenadas__longitud_grados'],
+            "total_avistamientos": area['total_avistamientos']
+        }
+        for area in areas_mayor_avistamiento
+    ]
+
+    # Preparar datos de salida
+    data = {"areas_mayor_avistamiento": areas_mayor_avistamiento_list}
+
+    if formato_geojson:
+        data['geojson'] = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            area['longitud_grados'],
+                            area['latitud_grados']
+                        ]
+                    },
+                    "properties": {
+                        "total_avistamientos": area['total_avistamientos']
+                    }
+                }
+                for area in areas_mayor_avistamiento_list
+            ]
+        }
+
+    return Response(data)
+
+
 
 @api_view(['GET'])
 def coordenadas_general(request):

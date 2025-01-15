@@ -10,9 +10,15 @@ const LanceForms = ({ lances, setLances, especies, tipo, carnadas ,codigoActivid
   const [activeTab, setActiveTab] = useState('0');
 
   const agregarLance = () => {
-    const numerosExistentes = lances.map((lance) => lance.codigo_lance);
-    const codigo_lance = codigoActividad + "-L-"+Math.max(0, ...numerosExistentes) + 1;
-
+    // Extrae el número más alto de los códigos existentes
+    const numerosExistentes = lances.map((lance) => {
+      const match = lance.codigo_lance.match(/-L-(\d+)$/);
+      return match ? parseInt(match[1], 10) : 0;
+    });
+  
+    const nuevoNumero = Math.max(0, ...numerosExistentes) + 1;
+    const codigo_lance = `${codigoActividad}-L-${nuevoNumero}`;
+  
     const nuevoLance = {
       codigo_lance,
       calado_fecha: '',
@@ -33,11 +39,10 @@ const LanceForms = ({ lances, setLances, especies, tipo, carnadas ,codigoActivid
       avistamientos: [],
       incidencias: [],
     };
-
+  
     setLances([...lances, nuevoLance]);
     setActiveTab(`${lances.length}`);
   };
-
   const toggle = (tab) => {
     if (activeTab !== tab) {
       setActiveTab(tab);

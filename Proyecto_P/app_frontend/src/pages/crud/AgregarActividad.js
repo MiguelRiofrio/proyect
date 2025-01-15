@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Button, Card, CardBody, CardHeader } from "reactstrap";
 import ActividadForms from "./forms/ActividadForms";
+import api from "../../routes/api"
 
 const AgregarActividadPesquera = () => {
   const navigate = useNavigate();
@@ -19,11 +19,11 @@ const AgregarActividadPesquera = () => {
   const fetchDatos = async () => {
     try {
       const [personasRes, puertosRes, embarcacionesRes, especiesRes, carnadaRes] = await Promise.all([
-        axios.get("http://localhost:8000/api/crud/personas/"),
-        axios.get("http://localhost:8000/api/crud/puertos/"),
-        axios.get("http://localhost:8000/api/crud/embarcaciones/"),
-        axios.get("http://localhost:8000/api/crud/especies/"),
-        axios.get("http://localhost:8000/api/crud/tipo-carnada/"),
+        api.get("/crud/personas/"),
+        api.get("/crud/puertos/"),
+        api.get("/crud/embarcaciones/"),
+        api.get("/crud/especies/"),
+        api.get("/crud/tipo-carnada/"),
       ]);
 
       setData({
@@ -51,7 +51,6 @@ const AgregarActividadPesquera = () => {
 
     console.log("Datos procesados a enviar:", procesarDatos);
     try {
-      console.log("Respuesta del servidor:", response.data);
 
       // Redirigir al usuario o mostrar un mensaje de éxito
       navigate("/actividadeslist");

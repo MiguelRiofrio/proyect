@@ -5,6 +5,7 @@ import Header from './components/Header';
 import Sidebar from './components/Siderbar';
 import AppRoutes from './routes/AppRoutes';
 import './styles/App.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

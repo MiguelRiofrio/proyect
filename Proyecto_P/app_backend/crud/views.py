@@ -48,6 +48,174 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
         )
         return Response(data)
 
+
+
+    @action(detail=False, methods=['post'], url_path='create')
+    def create_activity(self, request):
+        """
+        Crear una actividad pesquera con todos los detalles anidados (lances, capturas, avistamientos, incidencias).
+        """
+        try:
+            with transaction.atomic():
+                # Extraer datos principales de la actividad
+                actividad_data = request.data
+
+                # Crear actividad
+                actividad = models.ActividadPesquera.objects.create(
+                    codigo_actividad=actividad_data['codigo_actividad'],
+                    fecha_salida=actividad_data['fecha_salida'],
+                    fecha_entrada=actividad_data['fecha_entrada'],
+                    tipo_arte_pesca=actividad_data['tipo_arte_pesca'],
+                    pesca_objetivo=actividad_data.get('pesca_objetivo', ''),
+                    puerto_salida_id=actividad_data.get('puerto_salida'),
+                    puerto_entrada_id=actividad_data.get('puerto_entrada'),
+                    embarcacion_id=actividad_data.get('embarcacion'),
+                    armador_id=actividad_data.get('armador'),
+                    capitan_id=actividad_data.get('capitan'),
+                    observador_id=actividad_data.get('observador'),
+                    ingresado_id=actividad_data.get('ingresado')
+                )
+
+                # Procesar lances
+                lances_data = actividad_data.get('lances', [])
+                for lance_data in lances_data:
+                    lance = models.Lance.objects.create(
+                        codigo_lance=lance_data['codigo_lance'],
+                        numero_lance=lance_data['numero_lance'],
+                        calado_fecha=lance_data['calado_fecha'],
+                        calado_hora=lance_data['calado_hora'],
+                        profundidad_suelo_marino=lance_data['profundidad_suelo_marino'],
+                        actividad=actividad
+                    )
+
+                    # Crear detalles según el tipo de lance
+                    if lance_data.get('tipo') == 'palangre':
+                        palangre_data = lance_data.get('detalles', {})
+                        lance_palangre = models.LancePalangre.objects.create(
+                            codigo_lance=lance,
+                            Tipo_anzuelo=palangre_data.get('Tipo_anzuelo', 'N'),
+                            tamano_anzuelo=palangre_data.get('tamano_anzuelo', 0.0),
+                            cantidad_anzuelos=palangre_data.get('cantidad_anzuelos', 0),
+                            linea_madre_metros=palangre_data.get('linea_madre_metros', 0.0),
+                            profundidad_anzuelo_metros=palangre_data.get('profundidad_anzuelo_metros', 0.0)
+                        )
+
+                        # Manejar carnadas
+                        carnadas_data = palangre_data.get('carnadas', [])
+                        for carnada_data in carnadas_data:
+                            models.LancePalangreCarnadas.objects.create(
+                                codigo_lance_palangre=lance_palangre,
+                                codigo_tipo_carnada_id=carnada_data['codigo_tipo_carnada'],
+                                porcentaje_carnada=carnada_data['porcentaje_carnada']
+                            )
+
+                    elif lance_data.get('tipo') == 'arrastre':
+                        arrastre_data = lance_data.get('detalles', {})
+                        models.LanceArrastre.objects.create(
+                            codigo_lance=lance,
+                            ted=arrastre_data.get('ted', False),
+                            copo=arrastre_data.get('copo', 0),
+                            tunel=arrastre_data.get('tunel', 0),
+                            pico=arrastre_data.get('pico', 0)
+                        )
+
+                    elif lance_data.get('tipo') == 'cerco':
+                        cerco_data = lance_data.get('detalles', {})
+                        models.LanceCerco.objects.create(
+                            codigo_lance=lance,
+                            altura_red=cerco_data.get('altura_red', 0.0),
+                            longitud_red=cerco_data.get('longitud_red', 0.0),
+                            malla_cabecero=cerco_data.get('malla_cabecero', 0.0),
+                            malla_cuerpo=cerco_data.get('malla_cuerpo', 0.0)
+                        )
+
+                    # Crear coordenadas si existen
+                    coordenadas = lance_data.get('coordenadas')
+                    if coordenadas:
+                        models.Coordenadas.objects.create(
+                            codigo_lance=lance,
+                            latitud_ns=coordenadas['latitud_ns'],
+                            latitud_grados=coordenadas['latitud_grados'],
+                            latitud_minutos=coordenadas['latitud_minutos'],
+                            longitud_w=coordenadas['longitud_w'],
+                            longitud_grados=coordenadas['longitud_grados'],
+                            longitud_minutos=coordenadas['longitud_minutos']
+                        )
+
+                    # Crear capturas
+                    capturas = lance_data.get('capturas', [])
+                    for captura_data in capturas:
+                        models.DatosCaptura.objects.create(
+                            lance=lance,
+                            individuos_retenidos=captura_data['individuos_retenidos'],
+                            individuos_descarte=captura_data['individuos_descarte'],
+                            peso_retenido=captura_data['peso_retenido'],
+                            peso_descarte=captura_data['peso_descarte'],
+                            especie_id=captura_data['especie']['codigo_especie']
+                        )
+
+                    # Crear avistamientos
+                    avistamientos = lance_data.get('avistamientos', [])
+                    for avistamiento_data in avistamientos:
+                        models.Avistamiento.objects.create(
+                            lance=lance,
+                            alimentandose=avistamiento_data['alimentandose'],
+                            deambulando=avistamiento_data['deambulando'],
+                            en_reposo=avistamiento_data['en_reposo'],
+                            especie_id=avistamiento_data['especie']['codigo_especie']
+                        )
+
+                    # Crear incidencias
+                    incidencias = lance_data.get('incidencias', [])
+                    for incidencia_data in incidencias:
+                        incidencia = models.Incidencia.objects.create(
+                            lance=lance,
+                            herida_grave=incidencia_data['herida_grave'],
+                            herida_leve=incidencia_data['herida_leve'],
+                            muerto=incidencia_data['muerto'],
+                            Totalindividuos=incidencia_data['total_individuos'],
+                            observacion=incidencia_data['observacion'],
+                            especie_id=incidencia_data['especie']['codigo_especie']
+                        )
+
+                        # Crear detalles específicos por tipo de incidencia
+                        detalles = incidencia_data.get('detalles', {})
+                        if 'aves' in detalles:
+                            models.IncidenciaAves.objects.create(
+                                incidencia=incidencia,
+                                aves_pico=detalles['aves']['pico'],
+                                aves_patas=detalles['aves']['patas'],
+                                aves_alas=detalles['aves']['alas']
+                            )
+                        if 'mamiferos' in detalles:
+                            models.IncidenciaMamiferos.objects.create(
+                                incidencia=incidencia,
+                                mamiferos_hocico=detalles['mamiferos']['hocico'],
+                                mamiferos_cuello=detalles['mamiferos']['cuello'],
+                                mamiferos_cuerpo=detalles['mamiferos']['cuerpo']
+                            )
+                        if 'tortugas' in detalles:
+                            models.IncidenciaTortugas.objects.create(
+                                incidencia=incidencia,
+                                tortugas_pico=detalles['tortugas']['pico'],
+                                tortugas_cuerpo=detalles['tortugas']['cuerpo'],
+                                tortugas_aleta=detalles['tortugas']['aleta']
+                            )
+                        if 'palangre' in detalles:
+                            models.IncidenciaPalangre.objects.create(
+                                incidencia=incidencia,
+                                palangre_orinque=detalles['palangre']['orinque'],
+                                palangre_reinal=detalles['palangre']['reinal'],
+                                palangre_anzuelo=detalles['palangre']['anzuelo'],
+                                palangre_linea_madre=detalles['palangre']['linea_madre']
+                            )
+
+                return Response({"message": "Actividad creada exitosamente."}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+
     @action(detail=True, methods=['get'], url_path='details')
     def Detalle_actividad(self, request, pk=None):
         """

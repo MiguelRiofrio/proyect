@@ -39,3 +39,14 @@
   border-radius: 10px; /* Opcional: bordes redondeados */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Opcional: sombra para diseño */
 }
+.login-page {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(120deg, #e8e8e8, #f0f0f0);
+}
+
+.app-page {
+  height: auto;
+}

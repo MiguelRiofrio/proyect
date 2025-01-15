@@ -13,35 +13,38 @@ import GestionUsuarios from '../pages/users/GestionUsuarios';
 import Reporte from '../pages/reporte/Reporte';
 import { routerCrudRoutes } from '../pages/crud/Component/routerCrudRoutes';
 import Mapa from '../pages/Mapa/Mapa'
+import { useLocation } from 'react-router-dom';
 
 const AppRoutes = ({ isAuthenticated, userRole, handleLogin }) => {
-  return (
-    <Routes>
-      <Route path="/login" element={<Login onLogin={handleLogin} />} />
-      {isAuthenticated ? (
-        <>
-          <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/mapa" element={<Mapa />} />
-          <Route path="/actividadeslist" element={<ActividadPesqueraList />} />
-          <Route path="/agregar" element={<AgregarActividadPesquera />} />
-          <Route path="/editar/:id" element={<EditarActividadPesquera />} />
-          <Route path="/detalle/:id" element={<DetalleActividadPesquera />} />
-          <Route path="/perfil" element={<Perfil />} />
-          <Route path="/reporte" element={<Reporte/>} />
-          {routerCrudRoutes}
+  const location = useLocation();
 
-    
-          {userRole === 'admin' ? (
-            <Route path="/gestionUser" element={<GestionUsuarios />} />
-          ) : (
-            <Route path="*" element={<Navigate to="/dashboard" />} />
-          )}
-        </>
-      ) : (
-        <Route path="*" element={<Navigate to="/login" />} />
-      )}
-    </Routes>
+  return (
+    <div className={location.pathname === '/login' ? 'login-page' : 'app-page'}>
+      <Routes>
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+        {isAuthenticated ? (
+          <>
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/mapa" element={<Mapa />} />
+            <Route path="/actividadeslist" element={<ActividadPesqueraList />} />
+            <Route path="/agregar" element={<AgregarActividadPesquera />} />
+            <Route path="/editar/:id" element={<EditarActividadPesquera />} />
+            <Route path="/detalle/:id" element={<DetalleActividadPesquera />} />
+            <Route path="/perfil" element={<Perfil />} />
+            <Route path="/reporte" element={<Reporte />} />
+            {routerCrudRoutes}
+            {userRole === 'admin' ? (
+              <Route path="/gestionUser" element={<GestionUsuarios />} />
+            ) : (
+              <Route path="*" element={<Navigate to="/dashboard" />} />
+            )}
+          </>
+        ) : (
+          <Route path="*" element={<Navigate to="/login" />} />
+        )}
+      </Routes>
+    </div>
   );
 };
 

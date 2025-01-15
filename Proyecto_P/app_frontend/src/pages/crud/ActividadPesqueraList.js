@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Table, Modal, ModalHeader, ModalBody, ModalFooter, Spinner, Alert } from 'reactstrap';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import api from '../../routes/api';
 
 const ActividadPesqueraList = () => {

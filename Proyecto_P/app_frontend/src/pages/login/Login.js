@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Container,
-
   Form,
   FormGroup,
   Label,
@@ -10,7 +9,6 @@ import {
   Alert,
   Spinner,
 } from 'reactstrap';
-import './Login.css';
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
@@ -60,13 +58,33 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <Container fluid className="login-container" >
+    <Container
+      fluid
+      className="login-container"
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: 'linear-gradient(120deg, #e8e8e8, #f0f0f0)',
+      }}
+    >
       <div
-        className="login-box" >
-        <h2 className="text-center mb-4">
+        className="login-box"
+        style={{
+          background: '#ffffff',
+          padding: '2.5rem',
+          borderRadius: '12px',
+          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
+          textAlign: 'center',
+          width: '100%',
+          maxWidth: '400px',
+        }}
+      >
+        <h2 className="text-center mb-4" style={{ fontWeight: '600', fontSize: '24px', color: '#333' }}>
           Iniciar Sesión
         </h2>
-     {error && <Alert color="danger">{error}</Alert>}
+        {error && <Alert color="danger">{error}</Alert>}
 
         <Form onSubmit={handleSubmit}>
           <FormGroup>
@@ -79,7 +97,6 @@ const Login = ({ onLogin }) => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              
             />
           </FormGroup>
           <FormGroup style={{ position: 'relative' }}>
