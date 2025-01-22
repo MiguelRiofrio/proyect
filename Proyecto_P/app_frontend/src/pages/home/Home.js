@@ -1,3 +1,5 @@
+// src/components/Home.jsx
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../routes/api'; // Importar Axios
@@ -16,7 +18,7 @@ const Home = () => {
         const response = await api.get('/kpi-home/'); // Cambiado a Axios
         setKpi(response.data); // Configura el estado con los datos de la API
       } catch (err) {
-        setError(err.message || 'Error al obtener los KPIs.');
+        setError(err.response?.data?.error || 'Error al obtener los KPIs.');
       } finally {
         setLoading(false);
       }
@@ -26,11 +28,11 @@ const Home = () => {
   }, []);
 
   if (loading) {
-    return <div>Cargando datos...</div>;
+    return <div className="loading">Cargando datos...</div>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div className="error">Error: {error}</div>;
   }
 
   return (
@@ -49,13 +51,13 @@ const Home = () => {
 
       {/* Navegación */}
       <div className="home-navigation">
-        <button className="nav-button" onClick={() => navigate('/dashboard')}>
+        <button className="nav-button" onClick={() => navigate('/mapa')}>
           🌍 Explorar el Mapa
         </button>
-        <button className="nav-button" onClick={() => navigate('/mapa')}>
+        <button className="nav-button" onClick={() => navigate('/dashboard')}>
           📊 Ver Gráficos
         </button>
-        <button className="nav-button" onClick={() => navigate('/actividades')}>
+        <button className="nav-button" onClick={() => navigate('/reporte')}>
           ℹ️ Más Información
         </button>
       </div>
@@ -83,6 +85,11 @@ const Home = () => {
               <br />
               <small>({kpi.especie_mas_comun.total_captura} capturas)</small>
             </p>
+          </div>
+          {/* Nueva Tarjeta para el Índice de Diversidad de Shannon */}
+          <div className="stat-card">
+            <h3>Índice de Diversidad de Shannon</h3>
+            <p>{kpi.indice_diversidad_shannon}</p>
           </div>
         </div>
       </div>

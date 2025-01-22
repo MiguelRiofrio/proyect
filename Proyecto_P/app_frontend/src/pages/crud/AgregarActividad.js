@@ -39,6 +39,7 @@ const AgregarActividadPesquera = () => {
   };
 
   const handleGuardar = async () => {
+
     const procesarDatos = {
       ...actividadData,
       puerto_salida: parseInt(actividadData.puerto_salida, 10),
@@ -51,7 +52,7 @@ const AgregarActividadPesquera = () => {
 
     console.log("Datos procesados a enviar:", procesarDatos);
     try {
-
+      await api.post("/crud/actividades/create/", procesarDatos);
       // Redirigir al usuario o mostrar un mensaje de éxito
       navigate("/actividadeslist");
     } catch (error) {

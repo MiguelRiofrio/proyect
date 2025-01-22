@@ -86,13 +86,7 @@ const ActividadPesqueraList = () => {
                   >
                     Ver
                   </Button>
-                  <Button
-                    color="warning"
-                    className="me-2"
-                    onClick={() => navigate(`/editar/${actividad.codigo_actividad}`)}
-                  >
-                    Editar
-                  </Button>
+                  
                   <Button
                     color="danger"
                     onClick={() => toggleModal(actividad)}

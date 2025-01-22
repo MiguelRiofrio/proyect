@@ -1,0 +1,22 @@
+.reporte-container {
+    padding: 16px;
+    background-color: #f9f9f9;
+  }
+  
+  .filtro-flotante {
+    position: sticky; /* Mantiene el filtro visible al hacer scroll */
+    top: 16px; /* Espaciado desde la parte superior */
+    width: 100%; /* Ajusta el ancho dinámicamente */
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .reporte-contenido {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  

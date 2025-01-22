@@ -32,7 +32,7 @@ def taxa_list(request):
 class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
     queryset = models.ActividadPesquera.objects.all()
     serializer_class = serializers.ActividadPesqueraSerializer
-
+ 
     @action(detail=False, methods=['get'], url_path='list')
     def Actividad_list(self, request):
         """
@@ -49,7 +49,6 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
         return Response(data)
 
 
-
     @action(detail=False, methods=['post'], url_path='create')
     def create_activity(self, request):
         """
@@ -59,6 +58,15 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
             with transaction.atomic():
                 # Extraer datos principales de la actividad
                 actividad_data = request.data
+
+                # Validar campos requeridos
+                required_fields = ['codigo_actividad', 'fecha_salida', 'fecha_entrada', 'tipo_arte_pesca',
+                                   'puerto_salida', 'puerto_entrada', 'embarcacion', 'armador', 'capitan',
+                                   'observador', 'ingresado']
+                for field in required_fields:
+                    if field not in actividad_data:
+                        return Response({"error": f"Campo '{field}' es requerido."},
+                                        status=status.HTTP_400_BAD_REQUEST)
 
                 # Crear actividad
                 actividad = models.ActividadPesquera.objects.create(
@@ -76,9 +84,21 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                     ingresado_id=actividad_data.get('ingresado')
                 )
 
+                # Obtener el tipo de arte de pesca desde la actividad
+                tipo_arte_pesca = actividad.tipo_arte_pesca.lower()
+
                 # Procesar lances
                 lances_data = actividad_data.get('lances', [])
                 for lance_data in lances_data:
+                    # Validar campos requeridos para cada lance (sin 'tipo')
+                    lance_required_fields = ['codigo_lance', 'numero_lance', 'calado_fecha',
+                                             'calado_hora', 'profundidad_suelo_marino', 'detalles']
+                    for field in lance_required_fields:
+                        if field not in lance_data:
+                            return Response({"error": f"Campo '{field}' es requerido en lances."},
+                                            status=status.HTTP_400_BAD_REQUEST)
+
+                    # Crear lance sin el campo 'tipo'
                     lance = models.Lance.objects.create(
                         codigo_lance=lance_data['codigo_lance'],
                         numero_lance=lance_data['numero_lance'],
@@ -87,47 +107,6 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                         profundidad_suelo_marino=lance_data['profundidad_suelo_marino'],
                         actividad=actividad
                     )
-
-                    # Crear detalles según el tipo de lance
-                    if lance_data.get('tipo') == 'palangre':
-                        palangre_data = lance_data.get('detalles', {})
-                        lance_palangre = models.LancePalangre.objects.create(
-                            codigo_lance=lance,
-                            Tipo_anzuelo=palangre_data.get('Tipo_anzuelo', 'N'),
-                            tamano_anzuelo=palangre_data.get('tamano_anzuelo', 0.0),
-                            cantidad_anzuelos=palangre_data.get('cantidad_anzuelos', 0),
-                            linea_madre_metros=palangre_data.get('linea_madre_metros', 0.0),
-                            profundidad_anzuelo_metros=palangre_data.get('profundidad_anzuelo_metros', 0.0)
-                        )
-
-                        # Manejar carnadas
-                        carnadas_data = palangre_data.get('carnadas', [])
-                        for carnada_data in carnadas_data:
-                            models.LancePalangreCarnadas.objects.create(
-                                codigo_lance_palangre=lance_palangre,
-                                codigo_tipo_carnada_id=carnada_data['codigo_tipo_carnada'],
-                                porcentaje_carnada=carnada_data['porcentaje_carnada']
-                            )
-
-                    elif lance_data.get('tipo') == 'arrastre':
-                        arrastre_data = lance_data.get('detalles', {})
-                        models.LanceArrastre.objects.create(
-                            codigo_lance=lance,
-                            ted=arrastre_data.get('ted', False),
-                            copo=arrastre_data.get('copo', 0),
-                            tunel=arrastre_data.get('tunel', 0),
-                            pico=arrastre_data.get('pico', 0)
-                        )
-
-                    elif lance_data.get('tipo') == 'cerco':
-                        cerco_data = lance_data.get('detalles', {})
-                        models.LanceCerco.objects.create(
-                            codigo_lance=lance,
-                            altura_red=cerco_data.get('altura_red', 0.0),
-                            longitud_red=cerco_data.get('longitud_red', 0.0),
-                            malla_cabecero=cerco_data.get('malla_cabecero', 0.0),
-                            malla_cuerpo=cerco_data.get('malla_cuerpo', 0.0)
-                        )
 
                     # Crear coordenadas si existen
                     coordenadas = lance_data.get('coordenadas')
@@ -142,9 +121,83 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                             longitud_minutos=coordenadas['longitud_minutos']
                         )
 
+                    # Obtener detalles del lance
+                    detalles = lance_data.get('detalles', {})
+
+                    # Manejar detalles basados en el tipo de arte de pesca de la actividad
+                    if tipo_arte_pesca == 'palangre':
+                        # Validar campos requeridos para palangre
+                        palangre_required_fields = ['Tipo_anzuelo', 'tamano_anzuelo',
+                                                    'cantidad_anzuelos', 'linea_madre_metros',
+                                                    'profundidad_anzuelo_metros', 'carnadas']
+                        for field in palangre_required_fields:
+                            if field not in detalles:
+                                return Response({"error": f"Campo '{field}' es requerido en detalles de palangre."},
+                                                status=status.HTTP_400_BAD_REQUEST)
+
+                        lance_palangre = models.LancePalangre.objects.create(
+                            codigo_lance=lance,
+                            Tipo_anzuelo=detalles.get('Tipo_anzuelo', 'N'),
+                            tamano_anzuelo=detalles.get('tamano_anzuelo', 0.0),
+                            cantidad_anzuelos=detalles.get('cantidad_anzuelos', 0),
+                            linea_madre_metros=detalles.get('linea_madre_metros', 0.0),
+                            profundidad_anzuelo_metros=detalles.get('profundidad_anzuelo_metros', 0.0)
+                        )
+
+                        # Manejar carnadas
+                        carnadas_data = detalles.get('carnadas', [])
+                        for carnada_data in carnadas_data:
+                            if 'codigo_tipo_carnada' not in carnada_data or 'porcentaje_carnada' not in carnada_data:
+                                return Response({"error": "Campos 'codigo_tipo_carnada' y 'porcentaje_carnada' son requeridos en carnadas."},
+                                                status=status.HTTP_400_BAD_REQUEST)
+                            models.LancePalangreCarnadas.objects.create(
+                                codigo_lance_palangre=lance_palangre,
+                                codigo_tipo_carnada_id=carnada_data['codigo_tipo_carnada'],
+                                porcentaje_carnada=carnada_data['porcentaje_carnada']
+                            )
+
+                    elif tipo_arte_pesca == 'arrastre':
+                        # Validar campos requeridos para arrastre
+                        arrastre_required_fields = ['ted', 'copo', 'tunel', 'pico']
+                        for field in arrastre_required_fields:
+                            if field not in detalles:
+                                return Response({"error": f"Campo '{field}' es requerido en detalles de arrastre."},
+                                                status=status.HTTP_400_BAD_REQUEST)
+
+                        models.LanceArrastre.objects.create(
+                            codigo_lance=lance,
+                            ted=detalles.get('ted', False),
+                            copo=detalles.get('copo', 0),
+                            tunel=detalles.get('tunel', 0),
+                            pico=detalles.get('pico', 0)
+                        )
+
+                    elif tipo_arte_pesca == 'cerco':
+                        # Validar campos requeridos para cerco
+                        cerco_required_fields = ['altura_red', 'longitud_red', 'malla_cabecero', 'malla_cuerpo']
+                        for field in cerco_required_fields:
+                            if field not in detalles:
+                                return Response({"error": f"Campo '{field}' es requerido en detalles de cerco."},
+                                                status=status.HTTP_400_BAD_REQUEST)
+
+                        models.LanceCerco.objects.create(
+                            codigo_lance=lance,
+                            altura_red=detalles.get('altura_red', 0.0),
+                            longitud_red=detalles.get('longitud_red', 0.0),
+                            malla_cabecero=detalles.get('malla_cabecero', 0.0),
+                            malla_cuerpo=detalles.get('malla_cuerpo', 0.0)
+                        )
+
+                    else:
+                        return Response({"error": f"Tipo de arte de pesca '{tipo_arte_pesca}' no reconocido."},
+                                        status=status.HTTP_400_BAD_REQUEST)
+
                     # Crear capturas
                     capturas = lance_data.get('capturas', [])
                     for captura_data in capturas:
+                        if 'especie' not in captura_data or 'codigo_especie' not in captura_data['especie']:
+                            return Response({"error": "Campo 'codigo_especie' es requerido en captura."},
+                                            status=status.HTTP_400_BAD_REQUEST)
                         models.DatosCaptura.objects.create(
                             lance=lance,
                             individuos_retenidos=captura_data['individuos_retenidos'],
@@ -157,6 +210,9 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                     # Crear avistamientos
                     avistamientos = lance_data.get('avistamientos', [])
                     for avistamiento_data in avistamientos:
+                        if 'especie' not in avistamiento_data or 'codigo_especie' not in avistamiento_data['especie']:
+                            return Response({"error": "Campo 'codigo_especie' es requerido en avistamiento."},
+                                            status=status.HTTP_400_BAD_REQUEST)
                         models.Avistamiento.objects.create(
                             lance=lance,
                             alimentandose=avistamiento_data['alimentandose'],
@@ -168,6 +224,17 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                     # Crear incidencias
                     incidencias = lance_data.get('incidencias', [])
                     for incidencia_data in incidencias:
+                        required_incidencia_fields = ['especie', 'herida_grave', 'herida_leve',
+                                                      'muerto', 'total_individuos', 'observacion']
+                        for field in required_incidencia_fields:
+                            if field not in incidencia_data:
+                                return Response({"error": f"Campo '{field}' es requerido en incidencia."},
+                                                status=status.HTTP_400_BAD_REQUEST)
+
+                        if 'codigo_especie' not in incidencia_data['especie']:
+                            return Response({"error": "Campo 'codigo_especie' es requerido en especie de incidencia."},
+                                            status=status.HTTP_400_BAD_REQUEST)
+
                         incidencia = models.Incidencia.objects.create(
                             lance=lance,
                             herida_grave=incidencia_data['herida_grave'],
@@ -179,42 +246,46 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                         )
 
                         # Crear detalles específicos por tipo de incidencia
-                        detalles = incidencia_data.get('detalles', {})
-                        if 'aves' in detalles:
+                        detalles_incidencia = incidencia_data.get('detalles', {})
+                        if 'aves' in detalles_incidencia:
+                            aves = detalles_incidencia['aves']
                             models.IncidenciaAves.objects.create(
                                 incidencia=incidencia,
-                                aves_pico=detalles['aves']['pico'],
-                                aves_patas=detalles['aves']['patas'],
-                                aves_alas=detalles['aves']['alas']
+                                aves_pico=aves.get('pico', 0),
+                                aves_patas=aves.get('patas', 0),
+                                aves_alas=aves.get('alas', 0)
                             )
-                        if 'mamiferos' in detalles:
+                        if 'mamiferos' in detalles_incidencia:
+                            mamiferos = detalles_incidencia['mamiferos']
                             models.IncidenciaMamiferos.objects.create(
                                 incidencia=incidencia,
-                                mamiferos_hocico=detalles['mamiferos']['hocico'],
-                                mamiferos_cuello=detalles['mamiferos']['cuello'],
-                                mamiferos_cuerpo=detalles['mamiferos']['cuerpo']
+                                mamiferos_hocico=mamiferos.get('hocico', 0),
+                                mamiferos_cuello=mamiferos.get('cuello', 0),
+                                mamiferos_cuerpo=mamiferos.get('cuerpo', 0)
                             )
-                        if 'tortugas' in detalles:
+                        if 'tortugas' in detalles_incidencia:
+                            tortugas = detalles_incidencia['tortugas']
                             models.IncidenciaTortugas.objects.create(
                                 incidencia=incidencia,
-                                tortugas_pico=detalles['tortugas']['pico'],
-                                tortugas_cuerpo=detalles['tortugas']['cuerpo'],
-                                tortugas_aleta=detalles['tortugas']['aleta']
+                                tortugas_pico=tortugas.get('pico', 0),
+                                tortugas_cuerpo=tortugas.get('cuerpo', 0),
+                                tortugas_aleta=tortugas.get('aleta', 0)
                             )
-                        if 'palangre' in detalles:
+                        if 'palangre' in detalles_incidencia:
+                            palangre = detalles_incidencia['palangre']
                             models.IncidenciaPalangre.objects.create(
                                 incidencia=incidencia,
-                                palangre_orinque=detalles['palangre']['orinque'],
-                                palangre_reinal=detalles['palangre']['reinal'],
-                                palangre_anzuelo=detalles['palangre']['anzuelo'],
-                                palangre_linea_madre=detalles['palangre']['linea_madre']
+                                palangre_orinque=palangre.get('orinque', 0),
+                                palangre_reinal=palangre.get('reinal', 0),
+                                palangre_anzuelo=palangre.get('anzuelo', 0),
+                                palangre_linea_madre=palangre.get('linea_madre', 0)
                             )
 
-                return Response({"message": "Actividad creada exitosamente."}, status=status.HTTP_201_CREATED)
+            return Response({"message": "Actividad creada exitosamente."}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
 
     @action(detail=True, methods=['get'], url_path='details')
     def Detalle_actividad(self, request, pk=None):
@@ -403,130 +474,6 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
-class EditarActividadCompleta(APIView):
-    def put(self, request, pk):
-        """
-        Actualiza una actividad pesquera completa, incluyendo lances, capturas, coordenadas, avistamientos e incidencias.
-        """
-        try:
-            data = request.data
-
-            # Iniciar una transacción para garantizar consistencia
-            with transaction.atomic():
-                # Actualizar ActividadPesquera
-                actividad = models.ActividadPesquera.objects.get(pk=pk)
-                actividad.fecha_salida = data.get('fecha_salida', actividad.fecha_salida)
-                actividad.fecha_entrada = data.get('fecha_entrada', actividad.fecha_entrada)
-                actividad.tipo_arte_pesca = data.get('tipo_arte_pesca', actividad.tipo_arte_pesca)
-                actividad.pesca_objetivo = data.get('pesca_objetivo', actividad.pesca_objetivo)
-                actividad.puerto_salida_id = data.get('puerto_salida', actividad.puerto_salida_id)
-                actividad.puerto_entrada_id = data.get('puerto_entrada', actividad.puerto_entrada_id)
-                actividad.embarcacion_id = data.get('embarcacion', actividad.embarcacion_id)
-                actividad.armador_id = data.get('armador', actividad.armador_id)
-                actividad.capitan_id = data.get('capitan', actividad.capitan_id)
-                actividad.observador_id = data.get('observador', actividad.observador_id)
-                actividad.save()
-
-                # Actualizar Lances y datos anidados
-                for lance_data in data.get('lances', []):
-                    lance, created = models.Lance.objects.update_or_create(
-                        codigo_lance=lance_data.get('codigo_lance'),
-                        actividad=actividad,
-                        defaults={
-                            'numero_lance': lance_data.get('numero_lance'),
-                            'calado_fecha': lance_data.get('calado_fecha'),
-                            'calado_hora': lance_data.get('calado_hora'),
-                            'profundidad_suelo_marino': lance_data.get('profundidad_suelo_marino'),
-                        }
-                    )
-
-                    # Actualizar Coordenadas
-                    coordenadas_data = lance_data.get('coordenadas')
-                    if coordenadas_data:
-                        models.Coordenadas.objects.update_or_create(
-                            codigo_lance=lance,
-                            defaults={
-                                'latitud_ns': coordenadas_data.get('latitud_ns'),
-                                'latitud_grados': coordenadas_data.get('latitud_grados'),
-                                'latitud_minutos': coordenadas_data.get('latitud_minutos'),
-                                'longitud_w': coordenadas_data.get('longitud_w'),
-                                'longitud_grados': coordenadas_data.get('longitud_grados'),
-                                'longitud_minutos': coordenadas_data.get('longitud_minutos'),
-                            }
-                        )
-
-                    # Actualizar Capturas
-                    for captura_data in lance_data.get('capturas', []):
-                        models.DatosCaptura.objects.update_or_create(
-                            codigo_captura=captura_data.get('codigo_captura'),
-                            lance=lance,
-                            defaults={
-                                'especie_id': captura_data.get('especie'),
-                                'individuos_retenidos': captura_data.get('individuos_retenidos'),
-                                'individuos_descarte': captura_data.get('individuos_descarte'),
-                                'peso_retenido': captura_data.get('peso_retenido'),
-                                'peso_descarte': captura_data.get('peso_descarte'),
-                            }
-                        )
-
-                    # Actualizar Avistamientos
-                    for avistamiento_data in lance_data.get('avistamientos', []):
-                        models.Avistamiento.objects.update_or_create(
-                            codigo_avistamiento=avistamiento_data.get('codigo_avistamiento'),
-                            lance=lance,
-                            defaults={
-                                'especie_id': avistamiento_data.get('especie'),
-                                'alimentandose': avistamiento_data.get('alimentandose'),
-                                'deambulando': avistamiento_data.get('deambulando'),
-                                'en_reposo': avistamiento_data.get('en_reposo'),
-                            }
-                        )
-
-                    # Actualizar Incidencias
-                    for incidencia_data in lance_data.get('incidencias', []):
-                        incidencia, created = models.Incidencia.objects.update_or_create(
-                            codigo_incidencia=incidencia_data.get('codigo_incidencia'),
-                            lance=lance,
-                            defaults={
-                                'especie_id': incidencia_data.get('especie'),
-                                'herida_grave': incidencia_data.get('herida_grave'),
-                                'herida_leve': incidencia_data.get('herida_leve'),
-                                'muerto': incidencia_data.get('muerto'),
-                                'Totalindividuos': incidencia_data.get('total_individuos'),
-                                'observacion': incidencia_data.get('observacion'),
-                            }
-                        )
-
-                        # Actualizar detalles de Incidencia (aves, mamíferos, etc.)
-                        if 'aves' in incidencia_data:
-                            models.IncidenciaAves.objects.update_or_create(
-                                codigo_incidencia=incidencia,
-                                defaults=incidencia_data['aves']
-                            )
-                        if 'mamiferos' in incidencia_data:
-                            models.IncidenciaMamiferos.objects.update_or_create(
-                                codigo_incidencia=incidencia,
-                                defaults=incidencia_data['mamiferos']
-                            )
-                        if 'tortugas' in incidencia_data:
-                            models.IncidenciaTortugas.objects.update_or_create(
-                                codigo_incidencia=incidencia,
-                                defaults=incidencia_data['tortugas']
-                            )
-                        if 'palangre' in incidencia_data:
-                            models.IncidenciaPalangre.objects.update_or_create(
-                                codigo_incidencia=incidencia,
-                                defaults=incidencia_data['palangre']
-                            )
-
-            return Response({"message": "Actividad y datos relacionados actualizados exitosamente."}, status=status.HTTP_200_OK)
-
-        except models.ActividadPesquera.DoesNotExist:
-            return Response({"error": "Actividad no encontrada."}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # CRUD para Tipo de Carnada

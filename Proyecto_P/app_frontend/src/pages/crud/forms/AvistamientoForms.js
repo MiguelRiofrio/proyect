@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Input, Nav, NavItem, NavLink, TabContent, TabPane, Button } from 'reactstrap';
+import { Table, Input, Nav, NavItem, NavLink, TabContent, TabPane, Button, FormGroup, Label } from 'reactstrap';
 import classnames from 'classnames';
 
 const AvistamientoForms = ({ avistamientos, setAvistamientos, especies = [] }) => {
@@ -13,8 +13,7 @@ const AvistamientoForms = ({ avistamientos, setAvistamientos, especies = [] }) =
 
   const agregarAvistamiento = () => {
     const nuevoAvistamiento = {
-      codigo_avistamiento: Date.now(),
-      especie: '',
+      especie: { codigo_especie: 0 }, // Inicializado como objeto
       grupos_avi_int: '',
       alimentandose: 0,
       deambulando: 0,
@@ -36,9 +35,22 @@ const AvistamientoForms = ({ avistamientos, setAvistamientos, especies = [] }) =
 
   const handleAvistamientoChange = (index, e) => {
     const { name, value } = e.target;
-    const nuevosAvistamientos = avistamientos.map((avistamiento, i) =>
-      i === index ? { ...avistamiento, [name]: value } : avistamiento
-    );
+    const nuevosAvistamientos = [...avistamientos];
+    const avistamientoActual = { ...nuevosAvistamientos[index] };
+
+    if (name === 'especie') {
+      avistamientoActual.especie = { codigo_especie: parseInt(value, 10) || 0 };
+    } else if (
+      name === 'alimentandose' ||
+      name === 'deambulando' ||
+      name === 'en_reposo'
+    ) {
+      avistamientoActual[name] = parseInt(value, 10) || 0;
+    } else {
+      avistamientoActual[name] = value;
+    }
+
+    nuevosAvistamientos[index] = avistamientoActual;
     setAvistamientos(nuevosAvistamientos);
   };
 
@@ -50,7 +62,7 @@ const AvistamientoForms = ({ avistamientos, setAvistamientos, especies = [] }) =
 
       <Nav tabs>
         {avistamientos.map((avistamiento, index) => (
-          <NavItem key={avistamiento.codigo_avistamiento}>
+          <NavItem key={index}>
             <NavLink
               className={classnames({ active: activeTab === `${index}` })}
               onClick={() => toggle(`${index}`)}
@@ -64,78 +76,100 @@ const AvistamientoForms = ({ avistamientos, setAvistamientos, especies = [] }) =
 
       <TabContent activeTab={activeTab}>
         {avistamientos.map((avistamiento, index) => (
-          <TabPane key={avistamiento.codigo_avistamiento} tabId={`${index}`}>
+          <TabPane key={index} tabId={`${index}`}>
             <Table bordered className="mt-3">
               <tbody>
                 <tr>
                   <td>
-                    <label>Especie</label>
-                    <Input
-                      type="select"
-                      name="especie"
-                      value={avistamiento.especie || ''}
-                      onChange={(e) => handleAvistamientoChange(index, e)}
-                    >
-                      <option value="">Seleccione una especie</option>
-                      {especies.map((especie) => (
-                        <option key={especie.codigo_especie} value={especie.codigo_especie}>
-                          {especie.nombre_cientifico}
-                        </option>
-                      ))}
-                    </Input>
+                    <FormGroup>
+                      <Label for={`especie-${index}`}>Especie</Label>
+                      <Input
+                        type="select"
+                        name="especie"
+                        id={`especie-${index}`}
+                        value={avistamiento.especie.codigo_especie}
+                        onChange={(e) => handleAvistamientoChange(index, e)}
+                      >
+                        <option value={0}>Seleccione una especie</option>
+                        {especies.map((especie) => (
+                          <option key={especie.codigo_especie} value={especie.codigo_especie}>
+                            {especie.nombre_cientifico} - {especie.nombre_comun} - {especie.especie}
+                          </option>
+                        ))}
+                      </Input>
+                    </FormGroup>
                   </td>
                   <td>
-                    <label>Grupos de Avistamiento</label>
-                    <Input
-                      type="text"
-                      name="grupos_avi_int"
-                      value={avistamiento.grupos_avi_int || ''}
-                      onChange={(e) => handleAvistamientoChange(index, e)}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <label>Individuos Alimentándose</label>
-                    <Input
-                      type="number"
-                      name="alimentandose"
-                      value={avistamiento.alimentandose || 0}
-                      onChange={(e) => handleAvistamientoChange(index, e)}
-                    />
-                  </td>
-                  <td>
-                    <label>Individuos Deambulando</label>
-                    <Input
-                      type="number"
-                      name="deambulando"
-                      value={avistamiento.deambulando || 0}
-                      onChange={(e) => handleAvistamientoChange(index, e)}
-                    />
+                    <FormGroup>
+                      <Label for={`grupos_avi_int-${index}`}>Grupos de Avistamiento</Label>
+                      <Input
+                        type="text"
+                        name="grupos_avi_int"
+                        id={`grupos_avi_int-${index}`}
+                        value={avistamiento.grupos_avi_int}
+                        onChange={(e) => handleAvistamientoChange(index, e)}
+                        placeholder="Ingrese grupos de avistamiento"
+                      />
+                    </FormGroup>
                   </td>
                 </tr>
                 <tr>
                   <td>
-                    <label>Individuos en Reposo</label>
-                    <Input
-                      type="number"
-                      name="en_reposo"
-                      value={avistamiento.en_reposo || 0}
-                      onChange={(e) => handleAvistamientoChange(index, e)}
-                    />
+                    <FormGroup>
+                      <Label for={`alimentandose-${index}`}>Individuos Alimentándose</Label>
+                      <Input
+                        type="number"
+                        name="alimentandose"
+                        id={`alimentandose-${index}`}
+                        value={avistamiento.alimentandose}
+                        onChange={(e) => handleAvistamientoChange(index, e)}
+                        min={0}
+                      />
+                    </FormGroup>
                   </td>
                   <td>
-                    <label>Total Individuos</label>
-                    <Input
-                      type="number"
-                      name="total_individuos"
-                      value={
-                        parseInt(avistamiento.alimentandose || 0) +
-                        parseInt(avistamiento.deambulando || 0) +
-                        parseInt(avistamiento.en_reposo || 0)
-                      }
-                      disabled
-                    />
+                    <FormGroup>
+                      <Label for={`deambulando-${index}`}>Individuos Deambulando</Label>
+                      <Input
+                        type="number"
+                        name="deambulando"
+                        id={`deambulando-${index}`}
+                        value={avistamiento.deambulando}
+                        onChange={(e) => handleAvistamientoChange(index, e)}
+                        min={0}
+                      />
+                    </FormGroup>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <FormGroup>
+                      <Label for={`en_reposo-${index}`}>Individuos en Reposo</Label>
+                      <Input
+                        type="number"
+                        name="en_reposo"
+                        id={`en_reposo-${index}`}
+                        value={avistamiento.en_reposo}
+                        onChange={(e) => handleAvistamientoChange(index, e)}
+                        min={0}
+                      />
+                    </FormGroup>
+                  </td>
+                  <td>
+                    <FormGroup>
+                      <Label for={`total_individuos-${index}`}>Total Individuos</Label>
+                      <Input
+                        type="number"
+                        name="total_individuos"
+                        id={`total_individuos-${index}`}
+                        value={
+                          (avistamiento.alimentandose || 0) +
+                          (avistamiento.deambulando || 0) +
+                          (avistamiento.en_reposo || 0)
+                        }
+                        disabled
+                      />
+                    </FormGroup>
                   </td>
                 </tr>
               </tbody>

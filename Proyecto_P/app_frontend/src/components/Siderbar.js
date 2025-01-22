@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ListGroup, ListGroupItem, Collapse } from 'reactstrap';
-import { Home, Dashboard, ListAlt, Map, ExpandLess, ExpandMore } from '@mui/icons-material';
+import { ListGroup, ListGroupItem } from 'reactstrap';
+import { Home, Dashboard, ListAlt, Map } from '@mui/icons-material';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import { Container } from 'reactstrap';
@@ -25,7 +26,10 @@ const Sidebar = () => {
           <Home style={{ marginRight: '10px' }} /> Home
         </ListGroupItem>
         <ListGroupItem tag={NavLink} to="/dashboard" action>
-          <Dashboard style={{ marginRight: '10px' }} /> Dashboard
+          <Dashboard style={{ marginRight: '10px' }} /> Analisis  
+        </ListGroupItem>
+        <ListGroupItem tag={NavLink} to="/estadistica" action>
+          <AnalyticsIcon style={{ marginRight: '10px' }} /> Estadistica  
         </ListGroupItem>
         {/* Submenú para Map */}
         <ListGroupItem  tag={NavLink} to="/mapa" action>

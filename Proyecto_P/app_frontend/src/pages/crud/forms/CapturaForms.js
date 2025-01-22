@@ -13,8 +13,7 @@ const CapturaForms = ({ capturas, setCapturas, especies }) => {
 
   const agregarCaptura = () => {
     const nuevaCaptura = {
-      codigo_captura: Date.now(),
-      especie: '',
+      especie: { codigo_especie: 0 }, // Inicializado como objeto
       individuos_retenidos: 0,
       individuos_descarte: 0,
       peso_retenido: 0,
@@ -36,15 +35,21 @@ const CapturaForms = ({ capturas, setCapturas, especies }) => {
 
   const handleCapturaChange = (index, e) => {
     const { name, value } = e.target;
+    const nuevosCampos = { ...capturas[index] };
+
+    if (name === 'especie') {
+      nuevosCampos[name] = { codigo_especie: parseInt(value, 10) || 0 }; // Convertir a objeto
+    } else if (
+      name.includes('individuos') ||
+      name.includes('peso')
+    ) {
+      nuevosCampos[name] = parseFloat(value) || 0; // Convertir a número
+    } else {
+      nuevosCampos[name] = value;
+    }
+
     const nuevasCapturas = capturas.map((captura, i) =>
-      i === index
-        ? {
-            ...captura,
-            [name]: name.includes('individuos') || name.includes('peso')
-              ? parseFloat(value) || 0 // Convertir a número
-              : value,
-          }
-        : captura
+      i === index ? nuevosCampos : captura
     );
     setCapturas(nuevasCapturas);
   };
@@ -57,7 +62,7 @@ const CapturaForms = ({ capturas, setCapturas, especies }) => {
 
       <Nav tabs>
         {capturas.map((captura, index) => (
-          <NavItem key={captura.codigo_captura}>
+          <NavItem key={index}>
             <NavLink
               className={classnames({ active: activeTab === `${index}` })}
               onClick={() => toggle(`${index}`)}
@@ -71,47 +76,41 @@ const CapturaForms = ({ capturas, setCapturas, especies }) => {
 
       <TabContent activeTab={activeTab}>
         {capturas.map((captura, index) => (
-          <TabPane key={captura.codigo_captura} tabId={`${index}`}>
+          <TabPane key={index} tabId={`${index}`}>
             <Table bordered className="mt-3">
               <thead>
-               
-              </thead>
-              <tbody>
-               <tr>
-                  <td>Especies</td>
-                
-                  <td colSpan={2}>
-                    <Input
-                      type="select"
-                      name="especie"
-                      value={captura.especie || ''}
-                      onChange={(e) => handleCapturaChange(index, e)}
-                    >
-                      <option value="">Seleccione una especie</option>
-                      {especies.map((especie) => (
-                        <option key={especie.codigo_especie} value={especie.codigo_especie}>
-                          {especie.nombre_cientifico} - {especie.nombre_comun}  - {especie.especie}
-                        </option>
-                      ))}
-                    </Input>
-                  </td>
-
-                </tr>
-              </tbody>
-              <thead>
                 <tr>
-                  <td>Individuos Retenidos</td>
-                  <td>Individuos Descarte</td>
-                  <td>Total Individuos</td>
+                  <th colSpan={4} className="text-center">Detalles de la Captura</th>
+                </tr>
+                <tr>
+                  <th>Especie</th>
+                  <th>Individuos Retenidos</th>
+                  <th>Individuos Descarte</th>
+                  <th>Total Individuos</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>
                     <Input
+                      type="select"
+                      name="especie"
+                      value={captura.especie.codigo_especie}
+                      onChange={(e) => handleCapturaChange(index, e)}
+                    >
+                      <option value={0}>Seleccione una especie</option>
+                      {especies.map((especie) => (
+                        <option key={especie.codigo_especie} value={especie.codigo_especie}>
+                          {especie.nombre_cientifico} - {especie.nombre_comun} - {especie.especie}
+                        </option>
+                      ))}
+                    </Input>
+                  </td>
+                  <td>
+                    <Input
                       type="number"
                       name="individuos_retenidos"
-                      value={captura.individuos_retenidos || 0}
+                      value={captura.individuos_retenidos}
                       onChange={(e) => handleCapturaChange(index, e)}
                     />
                   </td>
@@ -119,23 +118,26 @@ const CapturaForms = ({ capturas, setCapturas, especies }) => {
                     <Input
                       type="number"
                       name="individuos_descarte"
-                      value={captura.individuos_descarte || 0}
+                      value={captura.individuos_descarte}
                       onChange={(e) => handleCapturaChange(index, e)}
                     />
                   </td>
                   <td>
-                  <Input
+                    <Input
                       type="number"
-                      value={parseInt(captura.individuos_retenidos || 0) -
-                            parseInt(captura.individuos_descarte || 0)} disabled/>
+                      value={
+                        captura.individuos_retenidos - captura.individuos_descarte
+                      }
+                      disabled
+                    />
                   </td>
                 </tr>
               </tbody>
               <thead>
                 <tr>
-                  <td>Peso Retenido (lb)</td>
-                  <td>Peso Descartado (lb)</td>
-                  <td>Total Peso</td>
+                  <th>Peso Retenido (lb)</th>
+                  <th>Peso Descartado (lb)</th>
+                  <th>Total Peso</th>
                 </tr>
               </thead>
               <tbody>
@@ -145,7 +147,7 @@ const CapturaForms = ({ capturas, setCapturas, especies }) => {
                       type="number"
                       step="0.01"
                       name="peso_retenido"
-                      value={captura.peso_retenido || 0}
+                      value={captura.peso_retenido}
                       onChange={(e) => handleCapturaChange(index, e)}
                     />
                   </td>
@@ -154,16 +156,20 @@ const CapturaForms = ({ capturas, setCapturas, especies }) => {
                       type="number"
                       step="0.01"
                       name="peso_descarte"
-                      value={captura.peso_descarte || 0}
+                      value={captura.peso_descarte}
                       onChange={(e) => handleCapturaChange(index, e)}
                     />
                   </td>
                   <td>
-                  <Input
+                    <Input
                       type="number"
                       step="0.01"
-                      value={parseFloat(captura.peso_retenido || 0) -
-                      parseFloat(captura.peso_descarte || 0)} disabled/>
+                      value={
+                        parseFloat(captura.peso_retenido) -
+                        parseFloat(captura.peso_descarte)
+                      }
+                      disabled
+                    />
                   </td>
                 </tr>
               </tbody>

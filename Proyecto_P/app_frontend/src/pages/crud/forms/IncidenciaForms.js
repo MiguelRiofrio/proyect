@@ -1,9 +1,20 @@
-import React, { useState } from 'react';
-import { Table, Input, Nav, NavItem, NavLink, TabContent, TabPane, Button } from 'reactstrap';
+import React from 'react';
+import {
+  Table,
+  Input,
+  Nav,
+  NavItem,
+  NavLink,
+  TabContent,
+  TabPane,
+  Button,
+  FormGroup,
+  Label,
+} from 'reactstrap';
 import classnames from 'classnames';
 
-const IncidenciaForms = ({ incidencias, setIncidencias }) => {
-  const [activeTab, setActiveTab] = useState('0');
+const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] }) => {
+  const [activeTab, setActiveTab] = React.useState('0');
 
   const toggle = (tab) => {
     if (activeTab !== tab) {
@@ -14,6 +25,7 @@ const IncidenciaForms = ({ incidencias, setIncidencias }) => {
   const agregarIncidencia = () => {
     const nuevaIncidencia = {
       codigo_incidencia: Date.now(),
+      especie: { codigo_especie: 0 }, // Inicializado como objeto
       herida_grave: 0,
       herida_leve: 0,
       muerto: 0,
@@ -29,7 +41,7 @@ const IncidenciaForms = ({ incidencias, setIncidencias }) => {
     const nuevasIncidencias = incidencias.map((incidencia, i) => {
       if (i === index) {
         const detallesExistentes = incidencia.detalles;
-  
+
         // Verificar la lógica de exclusividad
         if (['aves', 'mamiferos', 'tortugas'].includes(tipo)) {
           const yaExisteOtroTipo = detallesExistentes.some((detalle) =>
@@ -40,7 +52,7 @@ const IncidenciaForms = ({ incidencias, setIncidencias }) => {
             return incidencia;
           }
         }
-  
+
         // Verificar la exclusividad de palangre
         if (tipo === 'palangre') {
           const yaExistePalangre = detallesExistentes.some((detalle) => detalle.tipo === 'palangre');
@@ -49,7 +61,7 @@ const IncidenciaForms = ({ incidencias, setIncidencias }) => {
             return incidencia;
           }
         }
-  
+
         // Agregar el nuevo detalle
         return {
           ...incidencia,
@@ -58,10 +70,9 @@ const IncidenciaForms = ({ incidencias, setIncidencias }) => {
       }
       return incidencia;
     });
-  
+
     setIncidencias(nuevasIncidencias);
   };
-  
 
   const handleDetalleChange = (index, detalleIndex, e) => {
     const { name, value } = e.target;
@@ -69,7 +80,7 @@ const IncidenciaForms = ({ incidencias, setIncidencias }) => {
       if (i === index) {
         const nuevosDetalles = incidencia.detalles.map((detalle, j) => {
           if (j === detalleIndex) {
-            return { ...detalle, [name]: value };
+            return { ...detalle, [name]: parseInt(value, 10) || 0 };
           }
           return detalle;
         });
@@ -104,8 +115,29 @@ const IncidenciaForms = ({ incidencias, setIncidencias }) => {
   const handleIncidenciaChange = (index, e) => {
     const { name, value } = e.target;
     const nuevasIncidencias = incidencias.map((incidencia, i) =>
-      i === index ? { ...incidencia, [name]: value } : incidencia
+      i === index
+        ? {
+            ...incidencia,
+            [name]:
+              name === 'especie'
+                ? { codigo_especie: parseInt(value, 10) || 0 }
+                : name === 'herida_grave' || name === 'herida_leve' || name === 'muerto'
+                ? parseInt(value, 10) || 0
+                : value,
+          }
+        : incidencia
     );
+
+    // Actualizar el total_individuos automáticamente si cambian los campos relacionados
+    const incidenciaActualizada = nuevasIncidencias[index];
+    if (['herida_grave', 'herida_leve', 'muerto'].includes(name)) {
+      incidenciaActualizada.total_individuos =
+        (parseInt(incidenciaActualizada.herida_grave, 10) || 0) +
+        (parseInt(incidenciaActualizada.herida_leve, 10) || 0) +
+        (parseInt(incidenciaActualizada.muerto, 10) || 0);
+      nuevasIncidencias[index] = incidenciaActualizada;
+    }
+
     setIncidencias(nuevasIncidencias);
   };
 
@@ -136,70 +168,129 @@ const IncidenciaForms = ({ incidencias, setIncidencias }) => {
               <tbody>
                 <tr>
                   <td>
-                    <label>Herida Grave</label>
-                    <Input
-                      type="number"
-                      name="herida_grave"
-                      value={incidencia.herida_grave || 0}
-                      onChange={(e) => handleIncidenciaChange(index, e)}
-                    />
+                    <FormGroup>
+                      <Label for={`especie-${index}`}>Especie</Label>
+                      <Input
+                        type="select"
+                        name="especie"
+                        id={`especie-${index}`}
+                        value={incidencia.especie.codigo_especie}
+                        onChange={(e) => handleIncidenciaChange(index, e)}
+                      >
+                        <option value={0}>Seleccione una especie</option>
+                        {especies.map((especie) => (
+                          <option
+                            key={especie.codigo_especie}
+                            value={especie.codigo_especie}
+                          >
+                            {especie.nombre_cientifico} - {especie.nombre_comun} - {especie.especie}
+                          </option>
+                        ))}
+                      </Input>
+                    </FormGroup>
                   </td>
                   <td>
-                    <label>Herida Leve</label>
-                    <Input
-                      type="number"
-                      name="herida_leve"
-                      value={incidencia.herida_leve || 0}
-                      onChange={(e) => handleIncidenciaChange(index, e)}
-                    />
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <label>Muerto</label>
-                    <Input
-                      type="number"
-                      name="muerto"
-                      value={incidencia.muerto || 0}
-                      onChange={(e) => handleIncidenciaChange(index, e)}
-                    />
-                  </td>
-                  <td>
-                    <label>Total Individuos</label>
-                    <Input
-                      type="number"
-                      name="total_individuos"
-                      value={incidencia.total_individuos || 0}
-                      onChange={(e) => handleIncidenciaChange(index, e)}
-                    />
+                    <FormGroup>
+                      <Label for={`observacion-${index}`}>Observación</Label>
+                      <Input
+                        type="textarea"
+                        name="observacion"
+                        id={`observacion-${index}`}
+                        value={incidencia.observacion || ''}
+                        onChange={(e) => handleIncidenciaChange(index, e)}
+                        placeholder="Ingrese observaciones"
+                      />
+                    </FormGroup>
                   </td>
                 </tr>
                 <tr>
                   <td>
-                    <label>Observación</label>
-                    <Input
-                      type="textarea"
-                      name="observacion"
-                      value={incidencia.observacion || ''}
-                      onChange={(e) => handleIncidenciaChange(index, e)}
-                    />
+                    <FormGroup>
+                      <Label for={`herida_grave-${index}`}>Herida Grave</Label>
+                      <Input
+                        type="number"
+                        name="herida_grave"
+                        id={`herida_grave-${index}`}
+                        value={incidencia.herida_grave || 0}
+                        onChange={(e) => handleIncidenciaChange(index, e)}
+                        min={0}
+                      />
+                    </FormGroup>
+                  </td>
+                  <td>
+                    <FormGroup>
+                      <Label for={`herida_leve-${index}`}>Herida Leve</Label>
+                      <Input
+                        type="number"
+                        name="herida_leve"
+                        id={`herida_leve-${index}`}
+                        value={incidencia.herida_leve || 0}
+                        onChange={(e) => handleIncidenciaChange(index, e)}
+                        min={0}
+                      />
+                    </FormGroup>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <FormGroup>
+                      <Label for={`muerto-${index}`}>Muerto</Label>
+                      <Input
+                        type="number"
+                        name="muerto"
+                        id={`muerto-${index}`}
+                        value={incidencia.muerto || 0}
+                        onChange={(e) => handleIncidenciaChange(index, e)}
+                        min={0}
+                      />
+                    </FormGroup>
+                  </td>
+                  <td>
+                    <FormGroup>
+                      <Label for={`total_individuos-${index}`}>Total Individuos</Label>
+                      <Input
+                        type="number"
+                        name="total_individuos"
+                        id={`total_individuos-${index}`}
+                        value={incidencia.total_individuos || 0}
+                        disabled
+                      />
+                    </FormGroup>
                   </td>
                 </tr>
               </tbody>
             </Table>
 
-            <Button color="success" onClick={() => agregarDetalle(index, 'aves')} className="mb-3">
-              Agregar Detalle de Aves
-            </Button>
-            <Button color="info" onClick={() => agregarDetalle(index, 'mamiferos')} className="mb-3">
-              Agregar Detalle de Mamíferos
-            </Button>
-            <Button color="warning" onClick={() => agregarDetalle(index, 'tortugas')} className="mb-3">
-              Agregar Detalle de Tortugas
-            </Button>
-            <Button color="primary" onClick={() => agregarDetalle(index, 'palangre')} className="mb-3">
-              Agregar Detalle de Palangre
-            </Button>
+            <div className="mb-3">
+              <Button
+                color="success"
+                onClick={() => agregarDetalle(index, 'aves')}
+                className="mr-2"
+              >
+                Agregar Detalle de Aves
+              </Button>
+              <Button
+                color="info"
+                onClick={() => agregarDetalle(index, 'mamiferos')}
+                className="mr-2"
+              >
+                Agregar Detalle de Mamíferos
+              </Button>
+              <Button
+                color="warning"
+                onClick={() => agregarDetalle(index, 'tortugas')}
+                className="mr-2"
+              >
+                Agregar Detalle de Tortugas
+              </Button>
+              <Button
+                color="primary"
+                onClick={() => agregarDetalle(index, 'palangre')}
+              >
+                Agregar Detalle de Palangre
+              </Button>
+            </div>
+
             {incidencia.detalles.map((detalle, detalleIndex) => (
               <Table bordered key={detalleIndex} className="mt-3">
                 <thead>
@@ -211,13 +302,14 @@ const IncidenciaForms = ({ incidencias, setIncidencias }) => {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>{detalle.tipo}</td>
+                    <td>{detalle.tipo.charAt(0).toUpperCase() + detalle.tipo.slice(1)}</td>
                     <td>
                       <Input
                         type="number"
                         name="cantidad"
                         value={detalle.cantidad || 0}
                         onChange={(e) => handleDetalleChange(index, detalleIndex, e)}
+                        min={0}
                       />
                     </td>
                     <td>

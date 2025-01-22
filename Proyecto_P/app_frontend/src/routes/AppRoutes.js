@@ -10,6 +10,7 @@ import Perfil from '../pages/users/Perfil';
 import Dashboard from '../pages/Dashboard_Palangre/Dashboard';
 import Login from '../pages/login/Login';
 import GestionUsuarios from '../pages/users/GestionUsuarios';
+import Estadistica from '../pages/Estadistica/EstadisticasPesqueras';
 import Reporte from '../pages/reporte/Reporte';
 import { routerCrudRoutes } from '../pages/crud/Component/routerCrudRoutes';
 import Mapa from '../pages/Mapa/Mapa'
@@ -32,6 +33,7 @@ const AppRoutes = ({ isAuthenticated, userRole, handleLogin }) => {
             <Route path="/editar/:id" element={<EditarActividadPesquera />} />
             <Route path="/detalle/:id" element={<DetalleActividadPesquera />} />
             <Route path="/perfil" element={<Perfil />} />
+            <Route path="/estadistica" element={<Estadistica />} />
             <Route path="/reporte" element={<Reporte />} />
             {routerCrudRoutes}
             {userRole === 'admin' ? (

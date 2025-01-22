@@ -1,0 +1,28 @@
+.reporte-container {
+    padding: 24px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .reporte-section {
+    margin-bottom: 20px;
+  }
+  
+  .reporte-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .reporte-list-item {
+    margin: 8px 0;
+    padding: 8px 16px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .reporte-card {
+    margin-bottom: 20px;
+  }
+  
