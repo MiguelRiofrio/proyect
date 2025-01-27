@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Container,
   Form,
   FormGroup,
   Label,
@@ -9,6 +8,7 @@ import {
   Alert,
   Spinner,
 } from 'reactstrap';
+import './Login.css';
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
@@ -58,32 +58,9 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <Container
-      fluid
-      className="login-container"
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: 'linear-gradient(120deg, #e8e8e8, #f0f0f0)',
-      }}
-    >
-      <div
-        className="login-box"
-        style={{
-          background: '#ffffff',
-          padding: '2.5rem',
-          borderRadius: '12px',
-          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
-          textAlign: 'center',
-          width: '100%',
-          maxWidth: '400px',
-        }}
-      >
-        <h2 className="text-center mb-4" style={{ fontWeight: '600', fontSize: '24px', color: '#333' }}>
-          Iniciar Sesión
-        </h2>
+    <div className="login-container">
+      <div className="login-box">
+        <h2>Iniciar Sesión</h2>
         {error && <Alert color="danger">{error}</Alert>}
 
         <Form onSubmit={handleSubmit}>
@@ -93,6 +70,7 @@ const Login = ({ onLogin }) => {
               type="text"
               name="username"
               id="username"
+              className="form-input"
               placeholder="Introduce tu nombre de usuario"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -105,50 +83,32 @@ const Login = ({ onLogin }) => {
               type={showPassword ? 'text' : 'password'}
               name="password"
               id="password"
+              className="form-input"
               placeholder="Introduce tu contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{
-                borderRadius: '8px',
-                border: '1px solid #ced4da',
-                padding: '10px',
-              }}
             />
             <Button
               type="button"
               color="link"
               onClick={() => setShowPassword(!showPassword)}
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                fontSize: '14px',
-              }}
+              className="show-password-btn"
             >
               {showPassword ? 'Ocultar' : 'Mostrar'}
             </Button>
           </FormGroup>
           <Button
-            color="primary"
+            className="submit-btn"
             block
             type="submit"
             disabled={loading}
-            style={{
-              fontSize: '16px',
-              fontWeight: 'bold',
-              padding: '10px',
-              borderRadius: '8px',
-              background: 'linear-gradient(to right, #007bff, #0056b3)',
-              marginTop: '20px',
-            }}
           >
             {loading ? <Spinner size="sm" /> : 'Iniciar Sesión'}
           </Button>
         </Form>
       </div>
-    </Container>
+    </div>
   );
 };
 

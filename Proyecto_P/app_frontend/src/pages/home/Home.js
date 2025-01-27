@@ -41,7 +41,7 @@ const Home = () => {
       <div className="home-header">
         <h1>🌊 Aplicación Análisis de Especies Vulnerables IPIAP</h1>
         <p>
-          Descubre y analiza datos sobre las especies marinas en tiempo real. 
+          Descubre y analiza datos sobre las especies marinas. 
           Usa nuestras herramientas interactivas para explorar mapas, gráficos y más.
         </p>
         <button className="cta-button" onClick={() => navigate('/dashboard')}>

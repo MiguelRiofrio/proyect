@@ -21,7 +21,7 @@ const Reporte = () => {
   });
 
   // Obtener el reporte desde la API con filtros aplicados
-  const fetchReporte = () => {
+  const fetchReporte =  () => {
     const params = {
       profundidad_min: filtros.profundidad_min !== '' ? filtros.profundidad_min : filtros.profundidadMinima,
       profundidad_max: filtros.profundidad_max !== '' ? filtros.profundidad_max : filtros.profundidadMaxima,
@@ -60,7 +60,7 @@ const Reporte = () => {
 
   useEffect(() => {
     fetchFiltrosDisponibles();
-    fetchReporte(); // Cargar el reporte automáticamente al montar el componente
+    fetchReporte();
   }, []);
 
   return (

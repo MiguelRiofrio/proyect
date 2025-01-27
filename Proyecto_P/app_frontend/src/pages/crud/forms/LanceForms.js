@@ -95,7 +95,7 @@ const LanceForms = ({ lances, setLances, especies, tipo, carnadas, codigoActivid
 
   return (
     <>
-      <Button color="primary" onClick={agregarLance} className="mb-3">
+      <Button color="dark" onClick={agregarLance} className="mb-3">
         Agregar Lance
       </Button>
       <Nav tabs>
@@ -105,7 +105,7 @@ const LanceForms = ({ lances, setLances, especies, tipo, carnadas, codigoActivid
               className={classnames({ active: activeTab === `${index}` })}
               onClick={() => toggle(`${index}`)}
             >
-              Lance {lance.codigo_lance}
+              Lance {lance.numero_lance}
               <Button close aria-label="Cancel" onClick={() => eliminarLance(index)} />
             </NavLink>
           </NavItem>

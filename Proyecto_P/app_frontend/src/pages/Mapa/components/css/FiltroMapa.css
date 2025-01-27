@@ -1,0 +1,12 @@
+/* components/css/FiltroMapa.css */
+
+.filtro-mapa-card {
+    margin-bottom: 20px;
+  }
+  
+  @media (max-width: 576px) {
+    .filtro-mapa-card {
+      margin-bottom: 10px;
+    }
+  }
+  

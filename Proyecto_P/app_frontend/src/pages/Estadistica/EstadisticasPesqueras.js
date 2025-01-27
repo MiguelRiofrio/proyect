@@ -14,8 +14,7 @@ const EstadisticasPesqueras = () => {
     fecha_inicio: '',
     fecha_fin: '',
     taxa: '',
-    profundidad_min: '',
-    profundidad_max: '',
+    
   });
 
   const [embarcaciones, setEmbarcaciones] = useState([]);

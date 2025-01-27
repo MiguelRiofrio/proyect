@@ -44,7 +44,7 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
             'tipo_arte_pesca', 
             'embarcacion__nombre_embarcacion', 
             'puerto_salida__nombre_puerto',
-            'pesca_objetivo'
+            'observador__nombre'
         )
         return Response(data)
 
@@ -481,6 +481,16 @@ class TipoCarnadaViewSet(SchemaMixin, viewsets.ModelViewSet):
     queryset = models.TipoCarnada.objects.all()
     serializer_class = serializers.TipoCarnadaSerializer
 
+    def create(self, request, *args, **kwargs):
+        with transaction.atomic():
+            try:
+                # Obtener el máximo código de tipo de carnada y generar el siguiente código
+                max_codigo = models.TipoCarnada.objects.aggregate(Max('codigo_tipo_carnada'))['codigo_tipo_carnada__max'] or 0
+                request.data['codigo_tipo_carnada'] = max_codigo + 1
+                return super().create(request, *args, **kwargs)
+            except IntegrityError:
+                raise ValidationError({"nombre_tipo_carnada": "El nombre del tipo de carnada ya existe."})
+
 # CRUD para Puerto
 class PuertoViewSet(SchemaMixin, viewsets.ModelViewSet):
     queryset = models.Puerto.objects.all()
@@ -500,23 +510,49 @@ class PersonaViewSet(SchemaMixin, viewsets.ModelViewSet):
     queryset = models.Persona.objects.all()
     serializer_class = serializers.PersonaSerializer
 
+    def create(self, request, *args, **kwargs):
+        try:
+            # Obtener el máximo código de persona y generar el siguiente código
+            max_codigo = models.Persona.objects.aggregate(Max('codigo_persona'))['codigo_persona__max'] or 0
+            request.data['codigo_persona'] = max_codigo + 1
+            return super().create(request, *args, **kwargs)
+        except IntegrityError:
+            raise ValidationError({"nombre_persona": "El nombre de la persona ya existe."})
+
 
 # CRUD para Embarcación
 class EmbarcacionViewSet(SchemaMixin, viewsets.ModelViewSet):
     queryset = models.Embarcacion.objects.all()
     serializer_class = serializers.EmbarcacionSerializer
 
+    def create(self, request, *args, **kwargs):
+        try:
+            max_codigo = models.Embarcacion.objects.aggregate(Max('codigo_embarcacion'))['codigo_embarcacion__max'] or 0
+            request.data['codigo_embarcacion'] = max_codigo + 1
+            return super().create(request, *args, **kwargs)
+        except IntegrityError:
+            raise ValidationError({"nombre_embarcacion": "El nombre de la embarcación ya existe."})
 
-# CRUD para Coordenadas
-class CoordenadasViewSet(SchemaMixin, viewsets.ModelViewSet):
-    queryset = models.Coordenadas.objects.all()
-    serializer_class = serializers.CoordenadasSerializer
 
 
 # CRUD para Especies
 class EspecieViewSet(SchemaMixin, viewsets.ModelViewSet):
     queryset = models.Especie.objects.all()
     serializer_class = serializers.EspecieSerializer
+
+    def create(self, request, *args, **kwargs):
+        try:
+            max_codigo = models.Especie.objects.aggregate(Max('codigo_especie'))['codigo_especie__max'] or 0
+            request.data['codigo_especie'] = max_codigo + 1
+            return super().create(request, *args, **kwargs)
+        except IntegrityError:
+            raise ValidationError({"nombre_especie": "El nombre de la especie ya existe."})
+
+
+# CRUD para Coordenadas
+class CoordenadasViewSet(SchemaMixin, viewsets.ModelViewSet):
+    queryset = models.Coordenadas.objects.all()
+    serializer_class = serializers.CoordenadasSerializer
 
 
 # CRUD para Lances

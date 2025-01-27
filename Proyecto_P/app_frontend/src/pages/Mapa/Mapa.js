@@ -1,5 +1,4 @@
-// src/components/Mapa.jsx
-
+// Mapa.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -10,238 +9,167 @@ import {
   Alert,
   Row,
   Col,
+  Button,
 } from 'reactstrap';
-import { Icon } from 'leaflet';
+import { FaFilter, FaSyncAlt } from 'react-icons/fa';
 import 'leaflet/dist/leaflet.css';
-import api from '../../routes/api'; // Asegúrate de que esta ruta es correcta
-import MapWithMarkers from './components/MapWithMarkers'; // Ruta corregida
-import FiltroMapa from './components/FiltroMapa'; // Importación del nuevo componente de filtros
-
-// Importar el icono correctamente
-import iconFish from '../../assets/pictures/iconFish.png'; // Verifica que el archivo existe en esta ruta
+import api from '../../routes/api';
+import MapWithMarkers from './components/MapWithMarkers';
+import FiltroMapa from './components/FiltroMapa';
+import './css/Mapa.css'; // Archivo CSS para estilos personalizados
 
 const Mapa = () => {
-  // Estado para almacenar los datos de capturas, avistamientos e incidencias
   const [datos, setDatos] = useState({ capturas: [], avistamientos: [], incidencias: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Estado agrupado para los filtros
+
   const [filtros, setFiltros] = useState({
     tipoFiltro: 'todos',
     taxaFiltro: '',
     especieFiltro: '',
     profundidadMin: '',
     profundidadMax: '',
+    puerto: '',
+    embarcacion: '',
+    year: '', // Añadido
   });
 
-  const [taxas, setTaxas] = useState([]);
-  const [especies, setEspecies] = useState([]);
-  const [rangoProfundidad, setRangoProfundidad] = useState({ min: 0, max: 50 });
-
-  // Icono personalizado para el mapa
-  const customIcon = new Icon({
-    iconUrl: iconFish,
-    iconSize: [38, 38],
-    iconAnchor: [19, 38],
-    popupAnchor: [0, -38],
+  const [filtrosDisponibles, setFiltrosDisponibles] = useState({
+    taxas: [],
+    especies: [],
+    puertos: [],
+    embarcaciones: [],
+    rangoProfundidad: { min: 0, max: 100 },
+    años: [], // Añadido
   });
 
-  // Función para obtener datos desde los dos endpoints
+  const [isFilterOpen, setIsFilterOpen] = useState(true);
+  const [isApplyingFilter, setIsApplyingFilter] = useState(false);
+
+  // Obtener datos desde la API
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
+      setIsApplyingFilter(true);
 
-      // Construir los parámetros de la solicitud
-      const params = { tipo: filtros.tipoFiltro };
-      if (filtros.taxaFiltro) {
-        params.taxa = filtros.taxaFiltro;
-      }
+      // Construcción de parámetros de consulta
+      const params = {
+        tipo: filtros.tipoFiltro,
+        taxa: filtros.taxaFiltro || undefined,
+        especie: filtros.especieFiltro || undefined,
+        rango_profundidad_min: filtros.profundidadMin || undefined,
+        rango_profundidad_max: filtros.profundidadMax || undefined,
+        puerto: filtros.puerto || undefined,
+        embarcacion: filtros.embarcacion || undefined,
+        year: filtros.year || undefined, // Añadido
+      };
 
-      // Llamadas a los dos endpoints en paralelo
+      // Obtener datos de coordenadas y filtros
       const [coordenadasResponse, filtrosResponse] = await Promise.all([
-        api.get(`/localizacion_especies/`, { params }),  // Trae coordenadas
-        api.get(`/filtros-coordenadas/`, { params }), // Trae filtros
+        api.get(`/localizacion_especies/`, { params }),
+        api.get(`/filtros-coordenadas/`, { params }), // Asegúrate de que este endpoint está correctamente configurado
       ]);
 
-      console.log('Respuesta de /localizacion_especies:', coordenadasResponse.data);
-      console.log('Respuesta de /filtros-coordenadas:', filtrosResponse.data);
+      console.log('Datos obtenidos:', coordenadasResponse.data);
+      console.log('Filtros disponibles:', filtrosResponse.data);
 
-      // Verificar la estructura de la respuesta de coordenadas
-      if (!coordenadasResponse.data || typeof coordenadasResponse.data !== 'object') {
-        throw new Error('La respuesta de /localizacion_especies no es un objeto válido.');
-      }
+      setDatos(coordenadasResponse.data || { capturas: [], avistamientos: [], incidencias: [] });
 
-      const { capturas, avistamientos, incidencias } = coordenadasResponse.data;
-
-      setDatos({
-        capturas: Array.isArray(capturas) ? capturas : [],
-        avistamientos: Array.isArray(avistamientos) ? avistamientos : [],
-        incidencias: Array.isArray(incidencias) ? incidencias : [],
+      setFiltrosDisponibles({
+        taxas: filtrosResponse.data.taxas || [],
+        especies: filtrosResponse.data.especies || [],
+        puertos: filtrosResponse.data.puertos || [],
+        embarcaciones: filtrosResponse.data.embarcaciones || [],
+        rangoProfundidad: filtrosResponse.data.rango_profundidad || { min: 0, max: 100 },
+        años: filtrosResponse.data.años || [], // Añadido
       });
-
-      // Establecer filtros
-      setTaxas(Array.isArray(filtrosResponse.data.taxas) ? filtrosResponse.data.taxas : []);
-      setEspecies(Array.isArray(filtrosResponse.data.especies) ? filtrosResponse.data.especies : []);
-      setRangoProfundidad(filtrosResponse.data.rango_profundidad || { min: 0, max: 50 });
-
-      // Establecer profundidad mínima y máxima desde la API con validaciones
-      if (filtrosResponse.data.rango_profundidad) {
-        setFiltros(prevFiltros => ({
-          ...prevFiltros,
-          profundidadMin: filtrosResponse.data.rango_profundidad.min != null
-            ? filtrosResponse.data.rango_profundidad.min.toString()
-            : '',
-          profundidadMax: filtrosResponse.data.rango_profundidad.max != null
-            ? filtrosResponse.data.rango_profundidad.max.toString()
-            : '',
-        }));
-      } else {
-        setFiltros(prevFiltros => ({
-          ...prevFiltros,
-          profundidadMin: '',
-          profundidadMax: '',
-        }));
-      }
-
     } catch (err) {
       setError('Error al cargar los datos del mapa.');
       console.error('Error al cargar los datos:', err);
     } finally {
       setLoading(false);
+      setIsApplyingFilter(false);
     }
   };
 
-  // useEffect para cargar datos al montar el componente y cuando cambian tipoFiltro o taxaFiltro
   useEffect(() => {
     fetchData();
-  }, [filtros.tipoFiltro, filtros.taxaFiltro]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtros]);
 
-  // useEffect para actualizar las especies cuando cambia la taxa
-  useEffect(() => {
-    if (filtros.taxaFiltro) {
-      // Filtrar especies basadas en la taxa seleccionada
-      const especiesFiltradas = datos.capturas
-        .concat(datos.avistamientos)
-        .concat(datos.incidencias)
-        .filter(item => item.taxa && item.taxa.toLowerCase() === filtros.taxaFiltro.toLowerCase())
-        .map(item => item.nombre_comun);
-
-      // Eliminar duplicados
-      const especiesUnicas = [...new Set(especiesFiltradas)];
-      setEspecies(especiesUnicas);
-    } else {
-      // Si no hay taxa seleccionada, mostrar todas las especies
-      const todasEspecies = datos.capturas
-        .concat(datos.avistamientos)
-        .concat(datos.incidencias)
-        .map(item => item.nombre_comun);
-
-      // Eliminar duplicados
-      const especiesUnicas = [...new Set(todasEspecies)];
-      setEspecies(especiesUnicas);
-    }
-  }, [filtros.taxaFiltro, datos]);
-
-  // Función para filtrar los datos antes de mostrarlos en el mapa
-  const filtrarDatos = () => {
-    let datosFiltrados = [];
-
-    // Determinar qué tipos incluir
-    const tipos = filtros.tipoFiltro === 'todos' ? ['capturas', 'avistamientos', 'incidencias'] : [filtros.tipoFiltro];
-
-    tipos.forEach(tipo => {
-      const items = datos[tipo] || [];
-      let filteredItems = [...items];
-
-      if (filtros.especieFiltro) {
-        // Filtrar por 'nombre_comun' ya que 'especies' en los filtros son nombres comunes
-        filteredItems = filteredItems.filter(item => item.nombre_comun === filtros.especieFiltro);
-      }
-
-      if (filtros.taxaFiltro) {
-        filteredItems = filteredItems.filter(item => item.taxa && item.taxa.toLowerCase() === filtros.taxaFiltro.toLowerCase());
-      }
-
-      if (filtros.profundidadMin || filtros.profundidadMax) {
-        filteredItems = filteredItems.filter(item => {
-          const profundidad = parseFloat(item.profundidad_suelo_marino);
-          return (
-            (!filtros.profundidadMin || profundidad >= parseFloat(filtros.profundidadMin)) &&
-            (!filtros.profundidadMax || profundidad <= parseFloat(filtros.profundidadMax))
-          );
-        });
-      }
-
-      datosFiltrados = datosFiltrados.concat(filteredItems);
-    });
-
-    console.log('Datos filtrados:', datosFiltrados);
-    return datosFiltrados;
-  };
-
-  // Función para manejar la aplicación de filtros
   const aplicarFiltro = () => {
     fetchData();
   };
 
-  return (
-    <Container fluid className="mt-5">
-      <Row className="justify-content-center">
-        <Col lg={10}>
-          {/* Mostrar mensaje de error si existe */}
-          {error && <Alert color="danger" className="text-center">{error}</Alert>}
+  const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
 
-          {/* Mostrar spinner mientras se cargan los datos */}
-          {loading ? (
-            <div className="text-center">
-              <Spinner color="primary" size="sm" />
-              <p className="mt-3">Cargando datos del mapa...</p>
-            </div>
-          ) : (
-            <Row style={{ height: '500px' }}>
-              {/* Panel de Filtros */}
-              <Col md={3} style={{ height: '100%' }}>
-                <Card className="shadow h-100">
-                  <CardHeader className="bg-secondary text-white text-center">
-                    <h3 className="mb-0">Filtros</h3>
-                  </CardHeader>
-                  <CardBody>
+  const handleReload = () => {
+    fetchData();
+  };
+
+  return (
+    <Container fluid className="mt-4 mapa-container">
+      <Row className="justify-content-center">
+        <Col lg={12}>
+          <Card className="shadow">
+            <CardHeader className="d-flex justify-content-between align-items-center bg-primary text-white">
+              <h5 className="mb-0">Mapa de Actividades Pesqueras</h5>
+              <Button color="light" onClick={handleReload} outline>
+                <FaSyncAlt /> Recargar
+              </Button>
+            </CardHeader>
+            <CardBody>
+              {error && <Alert color="danger" className="text-center">{error}</Alert>}
+
+              <Row className="mb-3">
+                <Col xs="12" className="d-flex justify-content-between align-items-center">
+                  <Button color="secondary" onClick={toggleFilter} outline>
+                    <FaFilter /> {isFilterOpen ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+                  </Button>
+                </Col>
+              </Row>
+
+              <Row>
+
+                {/* Columna de Filtros */}
+                {isFilterOpen && (
+                  
+                  <Col md={3} className="mb-3">
+                    <h6 className="mb-0">Filtros</h6>
                     <FiltroMapa
                       filtros={filtros}
                       setFiltros={setFiltros}
-                      taxas={taxas}
-                      especies={especies}
-                      profundidadMin={filtros.profundidadMin}
-                      profundidadMax={filtros.profundidadMax}
-                      rangoProfundidad={rangoProfundidad}
+                      taxas={filtrosDisponibles.taxas}
+                      especies={filtrosDisponibles.especies}
+                      puertos={filtrosDisponibles.puertos}
+                      embarcaciones={filtrosDisponibles.embarcaciones}
+                      rangoProfundidad={filtrosDisponibles.rangoProfundidad}
+                      años={filtrosDisponibles.años} // Añadido
                       aplicarFiltro={aplicarFiltro}
+                      isApplyingFilter={isApplyingFilter}
                     />
-                  </CardBody>
-                </Card>
-              </Col>
+                  </Col>
+                )}
 
-              {/* Mapa */}
-              <Col md={9} style={{ height: '100%' }}>
-                <Card className="shadow h-100">
-                  <CardHeader className="bg-primary text-white text-center">
-                    <h3 className="mb-0">Mapa de Captura</h3>
-                  </CardHeader>
-                  <CardBody className="p-0">
-                    <div style={{ height: '100%', width: '100%' }}>
-                      <MapWithMarkers
-                        datos={filtrarDatos()}
-                        center={[-0.5, -80]} // Coordenadas iniciales
-                        zoom={6} // Nivel de zoom inicial
-                        customIcon={customIcon} // Ícono personalizado
-                      />
+                {/* Columna del Mapa */}
+                <Col md={isFilterOpen ? 9 : 12} className="mapa-responsive">
+                  {loading ? (
+                    <div className="text-center my-5">
+                      <Spinner color="primary" size="lg" />
+                      <p className="mt-3">Cargando datos del mapa...</p>
                     </div>
-                  </CardBody>
-                </Card>
-              </Col>
-            </Row>
-          )}
+                  ) : (
+                    <MapWithMarkers
+                      datos={[...datos.capturas, ...datos.avistamientos, ...datos.incidencias]}
+                      center={[-0.5, -80]}
+                      zoom={6}
+                    />
+                  )}
+                </Col>
+              </Row>
+            </CardBody>
+          </Card>
         </Col>
       </Row>
     </Container>

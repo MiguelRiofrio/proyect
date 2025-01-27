@@ -1,0 +1,22 @@
+/* Mapa.css */
+
+.mapa-container {
+  background-color: #f8f9fa;
+}
+
+.mapa-responsive {
+  height: 600px; /* Ajusta según tus necesidades */
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .mapa-responsive {
+    height: 400px; /* Ajuste para pantallas más pequeñas */
+  }
+}
+
+@media (max-width: 576px) {
+  .mapa-responsive {
+    height: 300px; /* Ajuste para pantallas muy pequeñas */
+  }
+}

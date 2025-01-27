@@ -1,0 +1,12 @@
+/* ActividadForms.css */
+
+.custom-button {
+    border-radius: 20px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+  }
+  
+  .custom-button:hover {
+    transform: scale(1.05);
+  }
+  

@@ -1,7 +1,7 @@
 /* Sidebar.css */
 .sidebar {
     width: 240px;
-    background-color: #f4f4f4;
+    background-color: #bfc6cd;
     padding: 15px;
     height: calc(100vh - 70px); /* Altura del sidebar para ajustarse al header */
     margin-top: 70px; /* Ajusta el sidebar para que empiece justo debajo del header */

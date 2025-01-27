@@ -1,16 +1,6 @@
 import React from 'react';
-import {
-  Table,
-  Input,
-  Nav,
-  NavItem,
-  NavLink,
-  TabContent,
-  TabPane,
-  Button,
-  FormGroup,
-  Label,
-} from 'reactstrap';
+import { Table, Input, Nav,NavItem,NavLink,TabContent, TabPane, Button, FormGroup, Label,} 
+from 'reactstrap';
 import classnames from 'classnames';
 
 const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] }) => {
@@ -143,7 +133,7 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] }) => {
 
   return (
     <>
-      <Button color="primary" onClick={agregarIncidencia} className="mb-3">
+      <Button color="dark" onClick={agregarIncidencia} className="mb-3">
         Agregar Incidencia
       </Button>
 
@@ -263,28 +253,28 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] }) => {
 
             <div className="mb-3">
               <Button
-                color="success"
+                color="dark"
                 onClick={() => agregarDetalle(index, 'aves')}
                 className="mr-2"
               >
                 Agregar Detalle de Aves
               </Button>
               <Button
-                color="info"
+                color="dark"
                 onClick={() => agregarDetalle(index, 'mamiferos')}
                 className="mr-2"
               >
                 Agregar Detalle de Mamíferos
               </Button>
               <Button
-                color="warning"
+                color="dark"
                 onClick={() => agregarDetalle(index, 'tortugas')}
                 className="mr-2"
               >
                 Agregar Detalle de Tortugas
               </Button>
               <Button
-                color="primary"
+                color="dark"
                 onClick={() => agregarDetalle(index, 'palangre')}
               >
                 Agregar Detalle de Palangre

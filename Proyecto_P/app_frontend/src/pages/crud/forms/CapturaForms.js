@@ -56,7 +56,7 @@ const CapturaForms = ({ capturas, setCapturas, especies }) => {
 
   return (
     <>
-      <Button color="primary" onClick={agregarCaptura} className="mb-3">
+      <Button color="dark" onClick={agregarCaptura} className="mb-3">
         Agregar Captura
       </Button>
 

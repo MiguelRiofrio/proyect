@@ -82,7 +82,7 @@ const AgregarActividadPesquera = () => {
       </Card>
 
       <div className="text-center mt-4">
-        <Button color="success" onClick={handleGuardar}>
+        <Button color="black" onClick={handleGuardar}>
           Guardar
         </Button>
         <Button color="secondary" onClick={() => navigate("/actividadeslist")}>

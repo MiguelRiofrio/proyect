@@ -1,0 +1,82 @@
+/* ContenidoDashboard.css */
+
+/* Estilo para tablas desplazables */
+.scrollable-table {
+    max-height: 400px; /* Ajusta según tus necesidades */
+    overflow-y: auto;
+    padding-right: 15px; /* Evita que el contenido se oculte debajo de la scrollbar */
+  }
+  
+  /* Encabezados fijos para tablas desplazables */
+  .scrollable-table table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  
+  .scrollable-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  
+  /* Mejorar la apariencia de los encabezados */
+  .table thead th {
+    vertical-align: middle;
+    text-align: center;
+    background-color: #343a40 !important; /* Asegura que el color del encabezado sea consistente */
+    color: #fff !important; /* Color del texto del encabezado */
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  /* Mejorar la apariencia de las celdas */
+  .table tbody td {
+    vertical-align: middle;
+    text-align: center;
+    font-size: 14px; /* Ajusta el tamaño de la fuente según tus preferencias */
+  }
+  
+  /* Resaltar filas al pasar el cursor */
+  .table-hover tbody tr:hover {
+    background-color: #f1f1f1;
+  }
+  
+  /* Scrollbar personalizada (opcional) */
+  .scrollable-table::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .scrollable-table::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  
+  .scrollable-table::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+  }
+  
+  /* Mejorar la tipografía general de las tablas */
+  .table {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+  }
+  
+  /* Filas alternadas con colores suaves */
+  .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 123, 255, 0.05);
+  }
+  
+  /* ContenidoDashboard.css */
+.scrollable-table {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.py-3 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}

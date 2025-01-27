@@ -1,15 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Checkbox } from '@mui/material';
+import {
+  Container,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Checkbox,
+  CircularProgress,
+  Box,
+  IconButton,
+  Tooltip
+} from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import api from '../../routes/api';
-
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem('access_token');
       const response = await api.get('/users/listusers/', {
@@ -18,15 +46,13 @@ const UserList = () => {
         },
       });
       setUsers(response.data);
+      setError(null);
     } catch (err) {
-      setError('Error al obtener los usuarios');
-      console.error(err);
+      setError('Error al obtener la lista de usuarios.');
+    } finally {
+      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const handleToggleActive = async (id, isActive) => {
     try {
@@ -36,15 +62,13 @@ const UserList = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      setUsers((prevUsers) => 
-        prevUsers.map((user) => 
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
           user.id === id ? { ...user, is_active: !isActive } : user
         )
       );
-      setError(null);
     } catch (err) {
-      setError('Error al actualizar el estado del usuario');
-      console.error(err);
+      setError('Error al actualizar el estado del usuario.');
     }
   };
 
@@ -57,11 +81,9 @@ const UserList = () => {
         },
       });
       setUsers((prevUsers) => prevUsers.filter((user) => user.id !== selectedUserId));
-      setOpenDialog(false);
-      setError(null);
+      handleCloseDialog();
     } catch (err) {
-      setError('Error al eliminar el usuario');
-      console.error(err);
+      setError('Error al eliminar el usuario.');
     }
   };
 
@@ -75,78 +97,84 @@ const UserList = () => {
     setSelectedUserId(null);
   };
 
-  const handleCheckboxChange = (id, isActive) => {
-    handleToggleActive(id, isActive);
-  };
-
-  const displayValue = (value) => (value ? value : 'N/A');
-
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom align="center">
-        Lista de Usuarios
-      </Typography>
+    <Container maxWidth="lg" sx={{ mt: 4, p: 4, borderRadius: 2, backgroundColor: '#eef2f5' }}>
+     
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      {loading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+          <CircularProgress color="primary" />
+        </Box>
+      ) : (
+        <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <Table>
+            <TableHead sx={{ backgroundColor: '#1565c0' }}>
+              <TableRow>
+                <TableCell sx={{ color: '#000000', fontWeight: 'bold' }} align="center">ID</TableCell>
+                <TableCell sx={{ color: '#000000', fontWeight: 'bold' }} align="center">Nombre</TableCell>
+                <TableCell sx={{ color: '#000000', fontWeight: 'bold' }} align="center">Correo Electrónico</TableCell>
+                <TableCell sx={{ color: '#000000', fontWeight: 'bold' }} align="center">Rol</TableCell>
+                <TableCell sx={{ color: '#000000', fontWeight: 'bold' }} align="center">Estado</TableCell>
+                <TableCell sx={{ color: '#000000', fontWeight: 'bold' }} align="center">Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {users.length > 0 ? (
+                users.map((user) => (
+                  <TableRow key={user.id} hover sx={{ '&:nth-of-type(even)': { backgroundColor: '#f9f9f9' } }}>
+                    <TableCell align="center">{user.id}</TableCell>
+                    <TableCell align="center">{user.username || 'N/A'}</TableCell>
+                    <TableCell align="center">{user.email || 'N/A'}</TableCell>
+                    <TableCell align="center">{user.is_superuser ? 'Administrador' : 'Usuario'}</TableCell>
+                    <TableCell align="center">
+                      <Checkbox
+                        checked={user.is_active}
+                        onChange={() => handleToggleActive(user.id, user.is_active)}
+                        color="primary"
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Editar">
+                        <IconButton color="primary">
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Eliminar">
+                        <IconButton color="error" onClick={() => handleOpenDialog(user.id)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    No hay usuarios disponibles.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
-      <TableContainer component={Paper} elevation={3}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell align="center"><strong>ID</strong></TableCell>
-              <TableCell align="center"><strong>Nombre de Usuario</strong></TableCell>
-              <TableCell align="center"><strong>Correo Electrónico</strong></TableCell>
-              <TableCell align="center"><strong>Rol</strong></TableCell>
-              <TableCell align="center"><strong>Estado</strong></TableCell>
-              <TableCell align="center"><strong>Acciones</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell align="center">{displayValue(user.id)}</TableCell>
-                <TableCell align="center">{displayValue(user.username)}</TableCell>
-                <TableCell align="center">{displayValue(user.email)}</TableCell>
-                <TableCell align="center">{user.is_superuser ? 'Administrador' : 'Usuario'}</TableCell>
-                <TableCell align="center">
-                  <Checkbox
-                    checked={user.is_active}
-                    onChange={() => handleCheckboxChange(user.id, user.is_active)}
-                    color="primary"
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <Button
-                    variant="contained"
-                    color="error"
-                    onClick={() => handleOpenDialog(user.id)}
-                  >
-                    Eliminar
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* Confirmación de eliminación */}
+      {/* Diálogo de confirmación de eliminación */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Eliminar Usuario</DialogTitle>
+        <DialogTitle>Confirmación</DialogTitle>
         <DialogContent>
           <DialogContentText>
             ¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} color="secondary">
+          <Button onClick={handleCloseDialog} color="secondary" variant="outlined">
             Cancelar
           </Button>
-          <Button onClick={handleDeleteUser} color="error">
+          <Button onClick={handleDeleteUser} color="error" variant="contained">
             Eliminar
           </Button>
         </DialogActions>

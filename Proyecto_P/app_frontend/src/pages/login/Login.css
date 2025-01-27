@@ -1,24 +1,29 @@
-/* Fondo con degradado */
+/* Asegurar que html y body ocupen toda la pantalla */
 html, body {
   margin: 0;
   padding: 0;
-  height: 0%;
+  width: 100%;
+  height: 100%;
+  font-family: 'Roboto', sans-serif;
+  background: linear-gradient(120deg, #ffffff,#ffffff);
 }
 
+/* Contenedor principal del login */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh; /* Asegura que abarque toda la ventana */
-  height: 100vh; /* Ajusta para cubrir exactamente el alto de la ventana */
-  background: linear-gradient(120deg, #e8e8e8, #f0f0f0);
-  font-family: 'Roboto', sans-serif;
+  min-height: 100vh; /* Garantiza cubrir la altura total de la pantalla */
+  height: 100vh; /* Ocupar toda la pantalla */
+  width: 100vw; /* Ocupar todo el ancho de la pantalla */
+  background: linear-gradient(120deg, #ffffff,#ffffff);
+  overflow: hidden;
 }
 
 /* Caja del formulario */
 .login-box {
   background: #ffffff;
-  padding: 2.5rem;
+  padding: 3rem;
   border-radius: 12px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   text-align: center;
@@ -26,6 +31,7 @@ html, body {
   max-width: 400px;
 }
 
+/* Título del formulario */
 h2 {
   font-family: 'Roboto', sans-serif;
   font-size: 24px;
@@ -36,10 +42,11 @@ h2 {
 
 /* Estilo de los inputs */
 .form-input {
-  border-radius: 6px;
-  border: 1px solid #ddd;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
   padding: 12px;
-  font-size: 14px;
+  font-size: 16px;
+  width: 100%;
   margin-bottom: 15px;
   transition: all 0.3s;
 }
@@ -50,12 +57,25 @@ h2 {
   box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }
 
+/* Botón de mostrar/ocultar contraseña */
+.show-password-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #007bff;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
 /* Botón de inicio de sesión */
 .submit-btn {
   font-size: 16px;
   padding: 12px;
-  border-radius: 6px;
-  background: #007bff;
+  border-radius: 8px;
+  background: linear-gradient(to right, #007bff, #0056b3);
   color: #fff;
   font-weight: bold;
   border: none;
@@ -72,13 +92,13 @@ h2 {
   margin-bottom: 20px;
 }
 
-/* Responsivo */
+/* Responsivo para móviles */
 @media (max-width: 768px) {
   .login-box {
-    padding: 1.5rem;
+    padding: 2rem;
   }
 
   h2 {
-    font-size: 20px;
+    font-size: 22px;
   }
 }

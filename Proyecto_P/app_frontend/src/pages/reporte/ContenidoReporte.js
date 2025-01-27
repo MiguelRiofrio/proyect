@@ -56,61 +56,102 @@ const ContenidoReporte = ({ reporte, filtros }) => {
   const resumenGeneral = reporte?.resumen_general || {};
 
   return (
-    <Box ref={reporteRef} className="reporte-container">
-      <Typography variant="h4" gutterBottom align="center">
+    <Box ref={reporteRef} className="reporte-container" sx={{ padding: 4, backgroundColor: '#f4f6f8', borderRadius: 2 }}>
+      <Typography variant="h4" gutterBottom align="center" color="primary">
         Reporte Detallado de Actividades Pesqueras
       </Typography>
 
-      <Card className="reporte-card">
-        <CardContent>
-          <Typography variant="h6" gutterBottom>Resumen General</Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <Typography>Total de Especies: {resumenGeneral.total_especies ?? 'N/A'}</Typography>
-              <Typography>Total de Capturas: {resumenGeneral.total_capturas ?? 'N/A'}</Typography>
-              <Typography>Total de Avistamientos: {resumenGeneral.total_avistamientos ?? 'N/A'}</Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography>Total de Incidencias: {resumenGeneral.total_incidencias ?? 'N/A'}</Typography>
-              <Typography>Total de Lances: {resumenGeneral.total_lances ?? 'N/A'}</Typography>
-              <Typography>Profundidad Máxima: {resumenGeneral.profundidad_maxima ?? 'N/A'} m</Typography>
-              <Typography>Profundidad Mínima: {resumenGeneral.profundidad_minima ?? 'N/A'} m</Typography>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
+            <CardContent>
+              <Typography variant="h6" color="secondary" gutterBottom>Resumen General</Typography>
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell><strong>Total de Especies:</strong></TableCell>
+                      <TableCell>{resumenGeneral.total_especies ?? 'N/A'}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><strong>Total de Capturas:</strong></TableCell>
+                      <TableCell>{resumenGeneral.total_capturas ?? 'N/A'}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><strong>Total de Avistamientos:</strong></TableCell>
+                      <TableCell>{resumenGeneral.total_avistamientos ?? 'N/A'}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
 
-      <Divider />
+        <Grid item xs={12} md={6}>
+          <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
+            <CardContent>
+              <Typography variant="h6" color="secondary" gutterBottom>Profundidades e Incidencias</Typography>
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell><strong>Total de Incidencias:</strong></TableCell>
+                      <TableCell>{resumenGeneral.total_incidencias ?? 'N/A'}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><strong>Profundidad Máxima:</strong></TableCell>
+                      <TableCell>{resumenGeneral.profundidad_maxima ?? 'N/A'} m</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><strong>Profundidad Mínima:</strong></TableCell>
+                      <TableCell>{resumenGeneral.profundidad_minima ?? 'N/A'} m</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <Divider sx={{ my: 4 }} />
 
       {reporte?.capturas_mas_comunes?.length > 0 && (
-        <Box className="reporte-section">
-          <Typography variant="h5" gutterBottom>Especies Más Capturadas</Typography>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell><strong>Especie</strong></TableCell>
-                  <TableCell><strong>Total Capturas</strong></TableCell>
-                  <TableCell><strong>Peso Total (kg)</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {reporte.capturas_mas_comunes.map((captura, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{captura.especie__nombre_cientifico || 'N/A'}</TableCell>
-                    <TableCell>{captura.total_capturado ?? 0}</TableCell>
-                    <TableCell>{captura.total_peso ?? 0}</TableCell>
+        <Card sx={{ boxShadow: 3, borderRadius: 2, marginTop: 4 }}>
+          <CardContent>
+            <Typography variant="h5" color="primary" gutterBottom>
+              Especies Más Capturadas
+            </Typography>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead sx={{ backgroundColor: '#1976d2' }}>
+                  <TableRow>
+                    <TableCell sx={{ color: '#fff' }}><strong>Especie</strong></TableCell>
+                    <TableCell sx={{ color: '#fff' }}><strong>Total Capturas</strong></TableCell>
+                    <TableCell sx={{ color: '#fff' }}><strong>Peso Total (kg)</strong></TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
+                </TableHead>
+                <TableBody>
+                  {reporte.capturas_mas_comunes.map((captura, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{captura.especie__nombre_cientifico || 'N/A'}</TableCell>
+                      <TableCell>{captura.total_capturado ?? 0}</TableCell>
+                      <TableCell>{captura.total_peso ?? 0}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
       )}
 
-      <Button onClick={handlePrint} variant="contained" color="primary" style={{ marginTop: '20px' }}>
-        Imprimir Reporte
-      </Button>
+      <Box textAlign="center" marginTop={4}>
+        <Button onClick={handlePrint} variant="contained" color="primary">
+          Imprimir Reporte
+        </Button>
+      </Box>
     </Box>
   );
 };

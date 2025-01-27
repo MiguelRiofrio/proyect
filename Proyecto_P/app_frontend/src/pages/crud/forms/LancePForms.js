@@ -1,5 +1,3 @@
-
-
 import { Table, Input, Button } from 'reactstrap';
 
 const renderDetalles = {
@@ -153,7 +151,7 @@ const renderDetalles = {
                 </td>
                 <td>
                   <Button
-                    color="danger"
+                    color="dark"
                     size="sm"
                     onClick={() => {
                       const updatedCarnadas = carnadasList.filter((_, i) => i !== carnadaIndex);
@@ -173,7 +171,7 @@ const renderDetalles = {
             ))}
             <tr>
               <td colSpan="3">
-                <Button
+                <Button color='dark'
                   onClick={() => {
                     const updatedCarnadas = [
                       ...carnadasList,

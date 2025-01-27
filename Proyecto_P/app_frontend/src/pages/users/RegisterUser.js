@@ -1,116 +1,180 @@
 import React, { useState } from 'react';
-import { Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert } from '@mui/material';
-import api from '../../routes/api';
+import {
+  TextField,
+  Button,
+  Grid,
+  MenuItem,
+  Alert,
+  CircularProgress
+} from '@mui/material';
+import api from '../../routes/api'; // Asegúrate de que la ruta sea correcta
 
+const roles = [
+  { value: true, label: 'Administrador' },
+  { value: false, label: 'Usuario Estándar' },
+  { value: false, label: 'editor' },
+];
 
-const RegisterUser = ({ open, handleClose }) => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+const RegisterUser = ({ handleClose }) => {
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    is_superuser: false,
+  });
+
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setFormData({
+      ...formData,
+      [name]: name === 'is_superuser' ? value === 'true' : value,  // Convertir string a boolean
+    });
+  };
+
+  const validateForm = () => {
+    if (!formData.username || !formData.email || !formData.password) {
+      setError('Todos los campos son obligatorios.');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+    if (!emailRegex.test(formData.email)) {
+      setError('El correo electrónico no es válido.');
+      return false;
+    }
+
+    if (formData.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.');
+      return false;
+    }
+
+    setError('');
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
+    if (!validateForm()) return;
 
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
+    setLoading(true);
+    setError('');
+    setSuccess(false);
 
     try {
       const token = localStorage.getItem('access_token');
-
-      await api.post(
-        '/users/register/',
-        { username, email, password },
+      api.post(
+        '/users/register/', 
+        {
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          is_superuser: formData.is_superuser,
+          is_active: true,  // Se establece activo por defecto
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
         }
       );
 
-      setSuccess('Usuario creado exitosamente');
-      setUsername('');
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      handleClose();
-    } catch (error) {
-      console.error('Detalles del error:', error.response?.data || error.message);
+      setSuccess('Usuario registrado con éxito.');
+      setFormData({ username: '', email: '', password: '', is_superuser: false });
 
-      if (error.response?.status === 500) {
-        setError('Error del servidor. Por favor, contacta al administrador.');
-      } else if (error.response?.data?.username) {
-        setError('El nombre de usuario ya está en uso');
-      } else if (error.response?.data?.email) {
-        setError('El correo electrónico ya está en uso');
-      } else if (error.response?.data?.password) {
-        setError('Contraseña no válida.');
+      setTimeout(() => {
+        setSuccess(false);
+        handleClose();
+      }, 2000);
+    } catch (error) {
+      console.error('Error:', error.response?.data || error.message);
+
+      if (error.response?.status === 400) {
+        setError('Datos inválidos. Verifica los campos.');
+      } else if (error.response?.status === 409) {
+        setError('El usuario ya existe.');
       } else {
-        setError('Error al crear el usuario');
+        setError('Error al registrar el usuario. Intenta nuevamente.');
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Registrar Usuario</DialogTitle>
-      <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-        
-        <form id="register-form" onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit}>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+
+      <Grid container spacing={2} sx={{ mt: 2 }}>
+        <Grid item xs={12} sm={6}>
           <TextField
-            label="Nombre de usuario"
+            label="Nombre de Usuario"
+            variant="outlined"
             fullWidth
-            margin="normal"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
             required
           />
+        </Grid>
+        <Grid item xs={12} sm={6}>
           <TextField
-            label="Correo electrónico"
+            label="Correo Electrónico"
+            variant="outlined"
+            fullWidth
+            name="email"
             type="email"
-            fullWidth
-            margin="normal"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={formData.email}
+            onChange={handleChange}
             required
           />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
           <TextField
             label="Contraseña"
-            type="password"
+            variant="outlined"
             fullWidth
-            margin="normal"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
             required
           />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
           <TextField
-            label="Confirmar Contraseña"
-            type="password"
+            select
+            label="Rol de Usuario"
+            variant="outlined"
             fullWidth
-            margin="normal"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            name="is_superuser"
+            value={formData.is_superuser.toString()}
+            onChange={handleChange}
             required
-          />
-        </form>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} color="secondary">
-          Cancelar
+          >
+            {roles.map((option) => (
+              <MenuItem key={option.value} value={option.value.toString()}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Grid>
+      </Grid>
+
+      <Grid container justifyContent="center" sx={{ mt: 3 }}>
+        <Button type="submit" variant="contained" color="primary" disabled={loading}>
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Registrar Usuario'}
         </Button>
-        <Button form="register-form" type="submit" color="primary">
-          Registrar
-        </Button>
-      </DialogActions>
-    </Dialog>
+      </Grid>
+    </form>
   );
 };
 

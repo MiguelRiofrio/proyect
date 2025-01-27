@@ -8,20 +8,23 @@ router = DefaultRouter()
 urlpatterns = [
     # Agrega las rutas del router
     path('', include(router.urls)),  
-    #views_dashboard
-    path('dashboard/', views_dashboard.DashboardDataView.as_view(), name='dashboard'),
+
+    #endpoints
     path('top-especies/', views_dashboard.TopEspeciesView.as_view(), name='top_especies'),
     path('kpi-home/', views_dashboard.KpiHomeView.as_view(), name='kpi_home'),
-    #views_mapa
-    path('localizacion_especies/', views_mapa.CoordenadasGeneralAPIView.as_view(), name='localizacion'),
-    path('filtros-coordenadas/', views_mapa.FiltroCoordenadasAPIView.as_view(), name='filtros-coordenadas'),
+    #endpoints para dashboard
+    path('dashboard/', views_dashboard.DashboardDataView.as_view(), name='dashboard'),
+    path('filtro-dashboard/', views_dashboard.FiltroDashboardAPIView.as_view(), name='filtros-dashboard'),
 
-    #path('localizacion_especies_a/', views_mapa.areas_mayor_avistamiento, name='localizacion'),
-    #views_analisis
+    #endpoints para map
+    path('localizacion_especies/', views_mapa.CoordenadasGeneralAPIView.as_view(), name='localizacion'),
+    path('filtros-coordenadas/', views_mapa.FiltroMapaAPIView.as_view(), name='filtros-coordenadas'),
+
+    #endpoints analisis
     path('reporte/', views_analisis.ReporteDetalladoView.as_view(), name='reporte'),
     path('filtros-analisis/', views_analisis.FiltrosView.as_view(), name='filtros_disponibles'),
 
-    #views_estaditicas
+    #endpoints estaditicas
     path('estadisticas/', views_estadistica.EstadisticasPesquerasView.as_view(), name='estadisticas-pesqueras'),
     path('filtro-estadistica/', views_estadistica.ListFiltroView.as_view(), name='listar_taxas_embarcaciones'),
 

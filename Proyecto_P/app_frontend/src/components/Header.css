@@ -5,7 +5,9 @@
   justify-content: space-between; /* Distribuye los elementos de manera equitativa */
   background-color: #1976d2; /* Color dorado */
   padding: 10px 20px;
-  color: white;
+  color: rgb(10, 10, 10);
+  background: linear-gradient(120deg, #e8e8e8,#597d8b);
+
   position: fixed;
   top: 0;
   left: 0;
@@ -17,7 +19,7 @@
 .header-title {
   font-size: 24px;
   text-decoration: none;
-  color: white;
+  color: rgb(189, 189, 189);
   flex-grow: 1;
   display: flex;
   align-items: center;

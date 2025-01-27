@@ -56,7 +56,7 @@ const AvistamientoForms = ({ avistamientos, setAvistamientos, especies = [] }) =
 
   return (
     <>
-      <Button color="primary" onClick={agregarAvistamiento} className="mb-3">
+      <Button color="dark" onClick={agregarAvistamiento} className="mb-3">
         Agregar Avistamiento
       </Button>
 

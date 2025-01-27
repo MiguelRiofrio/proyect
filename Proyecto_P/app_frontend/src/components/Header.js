@@ -37,7 +37,7 @@ const Header = ({ isAuthenticated, handleLogout, toggleSidebar }) => {
         className="header-title text-dark font-weight-bold"
         style={{ fontSize: '1.5rem', textDecoration: 'none' }}
       >
-        Plataforma Digital
+          Gestor de Especies Vulnerables
       </NavLink>
 
       {/* Ícono de Configuración con estado de color */}
