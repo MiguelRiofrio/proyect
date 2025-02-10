@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+// src/components/FiltroMapa.jsx
+
+import React, { useState, useEffect } from 'react';
 import {
   Form,
   FormGroup,
@@ -10,7 +12,9 @@ import {
   Accordion,
   AccordionItem,
   AccordionHeader,
-  AccordionBody
+  AccordionBody,
+  FormFeedback,
+  Alert,
 } from 'reactstrap';
 
 const FiltroMapa = ({
@@ -22,13 +26,18 @@ const FiltroMapa = ({
   embarcaciones,
   rangoProfundidad,
   años,
-  aplicarFiltro,
 }) => {
   // Estado local para controlar qué sección del acordeón está abierta
   const [openAccordion, setOpenAccordion] = useState('1');
 
   // Estado local para almacenar los cambios de los filtros antes de aplicar
   const [localFilters, setLocalFilters] = useState({ ...filtros });
+
+  // Estado para manejar errores de validación
+  const [errors, setErrors] = useState({});
+
+  // Estado para mostrar mensajes de error al aplicar filtro
+  const [submitError, setSubmitError] = useState('');
 
   // Función para alternar la sección abierta del acordeón
   const toggleAccordion = (id) => {
@@ -39,123 +48,109 @@ const FiltroMapa = ({
     }
   };
 
+  // Función para resetear campos dependientes
+  const resetDependentFields = (field) => {
+    switch (field) {
+      case 'tipoFiltro':
+        return { taxaFiltro: '', especieFiltro: '' };
+      case 'taxaFiltro':
+        return { especieFiltro: '' };
+      case 'puerto':
+        return { embarcacion: '' };
+      default:
+        return {};
+    }
+  };
+
   // Manejadores de eventos (guardan cambios en localFilters)
-  const handleTipoFiltroChange = (e) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
     setLocalFilters((prev) => ({
       ...prev,
-      tipoFiltro: e.target.value,
-      taxaFiltro: '',
-      especieFiltro: '',
-      puerto: '',
-      embarcacion: '',
-      year: '',
+      [name]: value,
+      ...resetDependentFields(name),
     }));
+    // Limpiar errores al modificar un campo
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      [name]: '',
+    }));
+    setSubmitError('');
   };
 
-  const handleTaxaFiltroChange = (e) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      taxaFiltro: e.target.value,
-      especieFiltro: '',
-    }));
-  };
+  // Validación de los datos del formulario
+  const validate = () => {
+    const newErrors = {};
 
-  const handleEspecieFiltroChange = (e) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      especieFiltro: e.target.value,
-    }));
-  };
+    const minVal = parseFloat(localFilters.profundidadMin);
+    const maxVal = parseFloat(localFilters.profundidadMax);
 
-  const handlePuertoChange = (e) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      puerto: e.target.value,
-      embarcacion: '',
-    }));
-  };
+    // Validar profundidades si se ingresan
+    if (localFilters.profundidadMin && isNaN(minVal)) {
+      newErrors.profundidadMin = 'Debe ser un número válido.';
+    }
 
-  const handleEmbarcacionChange = (e) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      embarcacion: e.target.value,
-    }));
-  };
+    if (localFilters.profundidadMax && isNaN(maxVal)) {
+      newErrors.profundidadMax = 'Debe ser un número válido.';
+    }
 
-  // Ahora permitimos que el usuario escriba cualquier valor de profundidad,
-  // y validamos solo al aplicar el filtro.
-  const handleProfundidadMinChange = (e) => {
-    const value = e.target.value;
-    setLocalFilters((prev) => ({
-      ...prev,
-      profundidadMin: value,
-    }));
-  };
+    if (!isNaN(minVal) && !isNaN(maxVal)) {
+      if (minVal > maxVal) {
+        newErrors.profundidadMin = 'La profundidad mínima no puede ser mayor que la máxima.';
+        newErrors.profundidadMax = 'La profundidad máxima no puede ser menor que la mínima.';
+      }
 
-  const handleProfundidadMaxChange = (e) => {
-    const value = e.target.value;
-    setLocalFilters((prev) => ({
-      ...prev,
-      profundidadMax: value,
-    }));
-  };
+      if (minVal < rangoProfundidad.min || maxVal > rangoProfundidad.max) {
+        if (minVal < rangoProfundidad.min) {
+          newErrors.profundidadMin = `La profundidad mínima debe ser al menos ${rangoProfundidad.min} metros.`;
+        }
+        if (maxVal > rangoProfundidad.max) {
+          newErrors.profundidadMax = `La profundidad máxima no puede exceder ${rangoProfundidad.max} metros.`;
+        }
+      }
+    }
 
-  const handleYearChange = (e) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      year: e.target.value,
-    }));
+    setErrors(newErrors);
+
+    // Retornar verdadero si no hay errores
+    return Object.keys(newErrors).length === 0;
   };
 
   // Lógica de validación al dar clic en "Aplicar Filtro"
   const validarYAplicar = () => {
-    const minVal = parseFloat(localFilters.profundidadMin);
-    const maxVal = parseFloat(localFilters.profundidadMax);
-
-    // Si no se han ingresado ambos valores, se permite aplicar el filtro (o maneja según tu preferencia)
-    if (isNaN(minVal) || isNaN(maxVal)) {
-      console.log('Filtros aplicados sin profundidades definidas:', localFilters);
-      // Actualizamos los filtros en el padre
+    if (validate()) {
+      // Si la validación pasa, actualizamos los filtros en el padre
       setFiltros(localFilters);
-      aplicarFiltro();
-      return;
+      setSubmitError('');
+    } else {
+      setSubmitError('Por favor, corrige los errores antes de aplicar el filtro.');
     }
-
-    // Validar que minVal <= maxVal
-    if (minVal > maxVal) {
-      alert("La profundidad mínima no puede ser mayor que la máxima.");
-      return;
-    }
-
-    // Validar que estén dentro del rango permitido por "rangoProfundidad"
-    if (minVal < rangoProfundidad.min || maxVal > rangoProfundidad.max) {
-      alert(`Las profundidades deben estar entre ${rangoProfundidad.min} y ${rangoProfundidad.max}.`);
-      return;
-    }
-
-    // Si todas las validaciones pasan, actualizamos el estado global y aplicamos el filtro
-    console.log('Filtros aplicados:', localFilters);
-    setFiltros(localFilters);
-    aplicarFiltro();
   };
+
+  // Limpiar errores al cambiar filtros externos
+  useEffect(() => {
+    setLocalFilters({ ...filtros });
+    setErrors({});
+    setSubmitError('');
+  }, [filtros]);
 
   return (
     <Form>
       <Accordion open={openAccordion} toggle={toggleAccordion}>
         {/* Sección 1: Tipo de Datos y Año */}
         <AccordionItem>
-          <AccordionHeader targetId="1">
-            Tipo de Datos y Año
-          </AccordionHeader>
+          <AccordionHeader targetId="1">Tipo de Interracion y Año</AccordionHeader>
           <AccordionBody accordionId="1">
             <FormGroup>
-              <Label for="tipo">Tipo de Datos</Label>
+              <Label for="tipo">Tipo de Interracion </Label>
               <Input
                 type="select"
                 id="tipo"
+                name="tipoFiltro"
                 value={localFilters.tipoFiltro}
-                onChange={handleTipoFiltroChange}
+                onChange={handleInputChange}
               >
+                <option value="todos">Todos</option>
                 <option value="capturas">Capturas</option>
                 <option value="avistamientos">Avistamientos</option>
                 <option value="incidencias">Incidencias</option>
@@ -167,9 +162,11 @@ const FiltroMapa = ({
               <Input
                 type="select"
                 id="year"
+                name="year"
                 value={localFilters.year}
-                onChange={handleYearChange}
+                onChange={handleInputChange}
               >
+                <option value="">Seleccione un año</option>
                 {años.map((year, index) => (
                   <option key={index} value={year}>
                     {year}
@@ -182,9 +179,7 @@ const FiltroMapa = ({
 
         {/* Sección 2: Taxa y Especie */}
         <AccordionItem>
-          <AccordionHeader targetId="2">
-            Taxa y Especie
-          </AccordionHeader>
+          <AccordionHeader targetId="2">Taxa y Especie</AccordionHeader>
           <AccordionBody accordionId="2">
             <Row>
               <Col md={6}>
@@ -193,9 +188,10 @@ const FiltroMapa = ({
                   <Input
                     type="select"
                     id="taxa"
+                    name="taxaFiltro"
                     value={localFilters.taxaFiltro}
-                    onChange={handleTaxaFiltroChange}
-                    disabled={!localFilters.tipoFiltro}
+                    onChange={handleInputChange}
+                    disabled={localFilters.tipoFiltro === 'todos' || !localFilters.tipoFiltro}
                   >
                     <option value="">Seleccione un taxa</option>
                     {taxas.map((taxa, index) => (
@@ -213,8 +209,9 @@ const FiltroMapa = ({
                   <Input
                     type="select"
                     id="especie"
+                    name="especieFiltro"
                     value={localFilters.especieFiltro}
-                    onChange={handleEspecieFiltroChange}
+                    onChange={handleInputChange}
                     disabled={!localFilters.taxaFiltro}
                   >
                     <option value="">Seleccione una especie</option>
@@ -232,9 +229,7 @@ const FiltroMapa = ({
 
         {/* Sección 3: Puerto y Embarcación */}
         <AccordionItem>
-          <AccordionHeader targetId="3">
-            Puerto y Embarcación
-          </AccordionHeader>
+          <AccordionHeader targetId="3">Puerto y Embarcación</AccordionHeader>
           <AccordionBody accordionId="3">
             <Row>
               <Col md={6}>
@@ -243,8 +238,9 @@ const FiltroMapa = ({
                   <Input
                     type="select"
                     id="puerto"
+                    name="puerto"
                     value={localFilters.puerto}
-                    onChange={handlePuertoChange}
+                    onChange={handleInputChange}
                   >
                     <option value="">Seleccione un puerto</option>
                     {puertos.map((puerto, index) => (
@@ -262,16 +258,14 @@ const FiltroMapa = ({
                   <Input
                     type="select"
                     id="embarcacion"
+                    name="embarcacion"
                     value={localFilters.embarcacion}
-                    onChange={handleEmbarcacionChange}
+                    onChange={handleInputChange}
                     disabled={!localFilters.puerto}
                   >
                     <option value="">Seleccione una embarcación</option>
                     {embarcaciones.map((embarcacion, index) => (
-                      <option
-                        key={index}
-                        value={embarcacion.nombre_embarcacion}
-                      >
+                      <option key={index} value={embarcacion.nombre_embarcacion}>
                         {embarcacion.nombre_embarcacion}
                       </option>
                     ))}
@@ -284,40 +278,53 @@ const FiltroMapa = ({
 
         {/* Sección 4: Rango de Profundidad */}
         <AccordionItem>
-          <AccordionHeader targetId="4">
-            Rango de Profundidad
-          </AccordionHeader>
+          <AccordionHeader targetId="4">Rango de Profundidad</AccordionHeader>
           <AccordionBody accordionId="4">
             <Row>
               <Col md={6}>
                 <FormGroup>
-                  <Label for="profundidadMin">Profundidad Mínima</Label>
+                  <Label for="profundidadMin">Profundidad Mínima (m)</Label>
                   <Input
                     type="number"
                     id="profundidadMin"
+                    name="profundidadMin"
                     value={localFilters.profundidadMin}
-                    onChange={handleProfundidadMinChange}
-                    placeholder={`Mínimo (${rangoProfundidad.min})`}
+                    onChange={handleInputChange}
+                    placeholder={`Mínimo (${rangoProfundidad.min_profundidad}m)`}
+                    invalid={!!errors.profundidadMin}
+                    min={rangoProfundidad.min_profundidad} // Establecer límite mínimo
+                    max={localFilters.profundidadMax || rangoProfundidad.max_profundidad } // Establecer un límite máximo más alto
+   
                   />
+                  {errors.profundidadMin && <FormFeedback>{errors.profundidadMin}</FormFeedback>}
                 </FormGroup>
               </Col>
 
               <Col md={6}>
                 <FormGroup>
-                  <Label for="profundidadMax">Profundidad Máxima</Label>
+                  <Label for="profundidadMax">Profundidad Máxima (m)</Label>
                   <Input
                     type="number"
                     id="profundidadMax"
+                    name="profundidadMax"
                     value={localFilters.profundidadMax}
-                    onChange={handleProfundidadMaxChange}
-                    placeholder={`Máximo (${rangoProfundidad.max})`}
+                    onChange={handleInputChange}
+                    placeholder={`Máximo (${rangoProfundidad.max_profundidad}m)`}
+                    invalid={!!errors.profundidadMax}
+                    min={localFilters.profundidadMin || rangoProfundidad.min_profundidad} // Evitar ser menor que profundidad mínima
+                    max={rangoProfundidad.max_profundidad } // Establecer un límite máximo más alto
+  
                   />
+                  {errors.profundidadMax && <FormFeedback>{errors.profundidadMax}</FormFeedback>}
                 </FormGroup>
               </Col>
             </Row>
           </AccordionBody>
         </AccordionItem>
       </Accordion>
+
+      {/* Mostrar mensaje de error al aplicar filtro */}
+      {submitError && <Alert color="danger" className="mt-3">{submitError}</Alert>}
 
       {/* Botón para Aplicar los Filtros */}
       <Button

@@ -186,7 +186,7 @@ class FiltroDashboardAPIView(APIView):
             # Filtrar embarcaciones basadas en actividades filtradas
             embarcaciones = models.Embarcacion.objects.filter(
                 actividadpesquera__in=actividades
-            ).distinct().values('nombre_embarcacion', 'matricula')
+            ).distinct().values('nombre_embarcacion')
 
             # Contar embarcaciones por puerto de salida y entrada
             embarcaciones_por_puerto = (

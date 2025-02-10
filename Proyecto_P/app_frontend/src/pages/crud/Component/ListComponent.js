@@ -22,7 +22,7 @@ import { FaEdit, FaTrash, FaPlus, FaSearch } from 'react-icons/fa';
 import api from './ApiService';
 import './css/ListComponent.css'; // Archivo CSS para estilos personalizados
 
-const ListComponent = ({ path, endpoint, title }) => {
+const ListComponent = ({ path, endpoint, title, codigoField }) => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +39,7 @@ const ListComponent = ({ path, endpoint, title }) => {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line
   }, [endpoint]);
 
   useEffect(() => {
@@ -54,7 +55,6 @@ const ListComponent = ({ path, endpoint, title }) => {
       setFilteredData(response.data);
       setError(null);
     } catch (error) {
-      console.error('Error al cargar los datos:', error);
       setError('Error al cargar los datos.');
     } finally {
       setLoading(false);
@@ -71,11 +71,12 @@ const ListComponent = ({ path, endpoint, title }) => {
   const deleteItem = async () => {
     if (!itemToDelete) return;
     try {
-      await api.delete(`${endpoint}${itemToDelete.id || itemToDelete.codigo}/`);
+      // Usa el campo específico para la eliminación
+      const codigo = itemToDelete[codigoField];
+      await api.delete(`${endpoint}${codigo}/`);
       setSuccessMessage('Registro eliminado exitosamente.');
       fetchData();
     } catch (error) {
-      console.error('Error al eliminar el registro:', error);
       setError('Error al eliminar el registro.');
     } finally {
       toggleDeleteModal();
@@ -84,23 +85,23 @@ const ListComponent = ({ path, endpoint, title }) => {
   };
 
   const handleSearch = () => {
-    if (searchTerm === '') {
+    if (searchTerm.trim() === '') {
       setFilteredData(data);
-    } else {
-      const lowercasedTerm = searchTerm.toLowerCase();
-      const filtered = data.filter((item) =>
-        Object.values(item).some(
-          (value) =>
-            value &&
-            value
-              .toString()
-              .toLowerCase()
-              .includes(lowercasedTerm)
-        )
-      );
-      setFilteredData(filtered);
-      setCurrentPage(1);
+      return;
     }
+    const lowercasedTerm = searchTerm.toLowerCase();
+    const filtered = data.filter((item) =>
+      Object.values(item).some(
+        (value) =>
+          value &&
+          value
+            .toString()
+            .toLowerCase()
+            .includes(lowercasedTerm)
+      )
+    );
+    setFilteredData(filtered);
+    setCurrentPage(1);
   };
 
   const requestSort = (key) => {
@@ -169,7 +170,7 @@ const ListComponent = ({ path, endpoint, title }) => {
                 <tr>
                   {filteredData.length > 0 &&
                     Object.keys(filteredData[0])
-                      .filter((key) => key !== 'id' && key !== 'codigo') // Excluir claves si es necesario
+                      .filter((key) => key !== 'id' && key !== codigoField) // Excluir claves si es necesario
                       .map((key) => (
                         <th
                           key={key}
@@ -191,9 +192,9 @@ const ListComponent = ({ path, endpoint, title }) => {
               </thead>
               <tbody>
                 {currentItems.map((item) => (
-                  <tr key={item.id || item.codigo || Object.values(item)[0]}>
+                  <tr key={item.id || item[codigoField] || Object.values(item)[0]}>
                     {Object.entries(item).map(([key, value]) => {
-                      if (key === 'id' || key === 'codigo') return null; // Excluir claves si es necesario
+                      if (key === 'id' || key === codigoField) return null; // Excluir claves si es necesario
                       return <td key={key}>{value}</td>;
                     })}
                     <td>
@@ -201,9 +202,13 @@ const ListComponent = ({ path, endpoint, title }) => {
                         color="warning"
                         size="sm"
                         className="me-2"
-                        onClick={() =>
-                          navigate(`${path}/edit/${item.id || item.codigo}`)
-                        }
+                        onClick={() => {
+                          // Verificación adicional para asegurar que el código existe
+                          if (!item[codigoField]) {
+                            return;
+                          }
+                          navigate(`${path}/edit/${item[codigoField]}`);
+                        }}
                         title="Editar"
                       >
                         <FaEdit />

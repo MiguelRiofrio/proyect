@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Table, Input, Nav,NavItem,NavLink,TabContent, TabPane, Button, FormGroup, Label,} 
 from 'reactstrap';
 import classnames from 'classnames';
 
-const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] }) => {
+const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_lance) => {
   const [activeTab, setActiveTab] = React.useState('0');
 
   const toggle = (tab) => {
@@ -13,8 +13,13 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] }) => {
   };
 
   const agregarIncidencia = () => {
+    const nuevoNumeroIncidencia = incidencias.length > 0
+    ? Math.max(...incidencias.map(c => c.numero_incidencia)) + 1
+    : 1;
+
+    const codigo_incidencia = `A-${nuevoNumeroIncidencia}-${codigo_lance}`;
     const nuevaIncidencia = {
-      codigo_incidencia: Date.now(),
+      codigo_incidencia,
       especie: { codigo_especie: 0 }, // Inicializado como objeto
       herida_grave: 0,
       herida_leve: 0,

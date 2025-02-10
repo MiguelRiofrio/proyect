@@ -19,47 +19,52 @@ import { useLocation } from 'react-router-dom';
 const AppRoutes = ({ isAuthenticated, userRole, handleLogin }) => {
   const location = useLocation();
 
-  // Definir rutas disponibles para cada rol
-  const adminRoutes = (
+
+  const editorRoutes = (
     <>
-      <Route path="/" element={<Home />} />
+      <Route path="*" element={<Navigate to="/actividadeslist" />} />
+      <Route path="/actividadeslist" element={<ActividadPesqueraList />} />
+      {routerCrudRoutes}
+    </>
+  );
+  const userRouter = (
+    <>
+      <Route path="/home" element={<Home />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/mapa" element={<Mapa />} />
-      <Route path="/actividadeslist" element={<ActividadPesqueraList />} />
       <Route path="/agregar" element={<AgregarActividadPesquera />} />
       <Route path="/editar/:id" element={<EditarActividadPesquera />} />
       <Route path="/detalle/:id" element={<DetalleActividadPesquera />} />
       <Route path="/perfil" element={<Perfil />} />
       <Route path="/estadistica" element={<Estadistica />} />
       <Route path="/reporte" element={<Reporte />} />
-      {routerCrudRoutes}
+      <Route path="*" element={<Navigate to="/home" />} />
+      {editorRoutes}
+    </>
+  );
+  // Definir rutas disponibles para cada rol
+  const adminRoutes = (
+    <>
+      {userRouter}
       <Route path="/gestionUser" element={<GestionUsuarios />} />
       {/* Redirigir cualquier otra ruta al dashboard */}
-      <Route path="*" element={<Navigate to="/dashboard" />} />
     </>
   );
 
-  const editorRoutes = (
-    <>
-      <Route path="/actividadeslist" element={<ActividadPesqueraList />} />
-      {/* Redirigir cualquier otra ruta al /actividadeslist */}
-      <Route path="*" element={<Navigate to="/actividadeslist" />} />
-      {routerCrudRoutes}
-    </>
-  );
+  
 
+  
   return (
     <div className={location.pathname === '/login' ? 'login-page' : 'app-page'}>
       <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         {isAuthenticated ? (
-          userRole === 'admin' ? (
+          userRole === 'superuser' ? (
             adminRoutes
           ) : userRole === 'editor' ? (
             editorRoutes
           ) : (
-            // Opcional: manejar otros roles o restringir acceso
-            <Route path="*" element={<Navigate to="/dashboard" />} />
+            userRouter
           )
         ) : (
           <Route path="*" element={<Navigate to="/login" />} />

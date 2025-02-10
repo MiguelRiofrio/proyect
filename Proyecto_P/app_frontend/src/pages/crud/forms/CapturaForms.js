@@ -2,17 +2,25 @@ import React, { useState } from 'react';
 import { Table, Input, Nav, NavItem, NavLink, TabContent, TabPane, Button } from 'reactstrap';
 import classnames from 'classnames';
 
-const CapturaForms = ({ capturas, setCapturas, especies }) => {
+const CapturaForms = ({ capturas, setCapturas, especies,codigo_lance }) => {
   const [activeTab, setActiveTab] = useState('0');
-
   const toggle = (tab) => {
     if (activeTab !== tab) {
       setActiveTab(tab);
     }
   };
 
+  
+  
+  
   const agregarCaptura = () => {
+    const nuevoNumeroCaptura = capturas.length > 0
+      ? Math.max(...capturas.map(c => c.numero_captura)) + 1
+      : 1;
+    const codigo_captura = `C-${nuevoNumeroCaptura}-${codigo_lance}`;
+
     const nuevaCaptura = {
+      codigo_captura,
       especie: { codigo_especie: 0 }, // Inicializado como objeto
       individuos_retenidos: 0,
       individuos_descarte: 0,

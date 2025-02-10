@@ -1,3 +1,4 @@
+
 // FormComponent.jsx
 import React, { useState, useEffect } from 'react';
 import {
@@ -55,7 +56,6 @@ const FormComponent = ({ endpoint, title, onSubmitSuccess }) => {
 
         setError(null);
       } catch (error) {
-        console.error('Error al obtener el esquema de campos:', error);
         setError('Error al cargar el formulario.');
       } finally {
         setLoading(false);
@@ -105,7 +105,6 @@ const FormComponent = ({ endpoint, title, onSubmitSuccess }) => {
         navigate(-1);
       }, 1500);
     } catch (error) {
-      console.error('Error al enviar el formulario:', error);
       if (error.response && error.response.data) {
         setError(
           `Error: ${
@@ -259,3 +258,4 @@ const FormComponent = ({ endpoint, title, onSubmitSuccess }) => {
 };
 
 export default FormComponent;
+

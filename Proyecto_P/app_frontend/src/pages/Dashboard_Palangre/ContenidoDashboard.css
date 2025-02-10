@@ -1,77 +1,97 @@
 /* ContenidoDashboard.css */
 
+/* Contenedor principal del dashboard */
+.dashboard-container {
+  padding: 2rem;
+  background-color: #f8f9fa;
+}
+
+/* Estilo para contenedor estandarizado de gráficos */
+.chart-container {
+  width: 100%;
+  height: 400px;           /* Altura fija para todos los gráficos */
+  position: relative;      /* Para que Chart.js se ajuste correctamente */
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 1rem;
+}
+
+/* Estilo para las tarjetas del dashboard */
+.dashboard-card {
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
 /* Estilo para tablas desplazables */
-.scrollable-table {
-    max-height: 400px; /* Ajusta según tus necesidades */
-    overflow-y: auto;
-    padding-right: 15px; /* Evita que el contenido se oculte debajo de la scrollbar */
-  }
-  
-  /* Encabezados fijos para tablas desplazables */
-  .scrollable-table table {
-    border-collapse: separate;
-    border-spacing: 0;
-  }
-  
-  .scrollable-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-  }
-  
-  /* Mejorar la apariencia de los encabezados */
-  .table thead th {
-    vertical-align: middle;
-    text-align: center;
-    background-color: #343a40 !important; /* Asegura que el color del encabezado sea consistente */
-    color: #fff !important; /* Color del texto del encabezado */
-    font-size: 16px;
-    font-weight: 600;
-  }
-  
-  /* Mejorar la apariencia de las celdas */
-  .table tbody td {
-    vertical-align: middle;
-    text-align: center;
-    font-size: 14px; /* Ajusta el tamaño de la fuente según tus preferencias */
-  }
-  
-  /* Resaltar filas al pasar el cursor */
-  .table-hover tbody tr:hover {
-    background-color: #f1f1f1;
-  }
-  
-  /* Scrollbar personalizada (opcional) */
-  .scrollable-table::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  .scrollable-table::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-  }
-  
-  .scrollable-table::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.4);
-  }
-  
-  /* Mejorar la tipografía general de las tablas */
-  .table {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #333;
-  }
-  
-  /* Filas alternadas con colores suaves */
-  .table-striped tbody tr:nth-of-type(odd) {
-    background-color: rgba(0, 123, 255, 0.05);
-  }
-  
-  /* ContenidoDashboard.css */
 .scrollable-table {
   max-height: 400px;
   overflow-y: auto;
+  padding-right: 15px;
 }
 
+/* Encabezados fijos para tablas desplazables */
+.scrollable-table table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.scrollable-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Estilo para los encabezados de las tablas */
+.table thead th {
+  vertical-align: middle;
+  text-align: center;
+  background-color: #343a40 !important;
+  color: #fff !important;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Estilo para las celdas de las tablas */
+.table tbody td {
+  vertical-align: middle;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Resalta la fila al pasar el cursor */
+.table-hover tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+/* Scrollbar personalizada (opcional) */
+.scrollable-table::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-table::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.scrollable-table::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Tipografía general para las tablas */
+.table {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+}
+
+/* Filas alternadas */
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Utilidades para centrado y padding */
 .text-center {
   text-align: center;
 }
@@ -79,4 +99,9 @@
 .py-3 {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+
+.py-5 {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
 }

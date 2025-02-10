@@ -73,7 +73,7 @@ const DashboardFiltro = ({
               >
                 <option value="">Todas las Embarcaciones</option>
                 {embarcacionesList.map((emb) => (
-                  <option key={emb.matricula} value={emb.nombre_embarcacion}>
+                  <option key={emb.nombre_embarcacion} value={emb.nombre_embarcacion}>
                     {emb.nombre_embarcacion}
                   </option>
                 ))}

@@ -1,4 +1,5 @@
-// Mapa.jsx
+// src/components/Mapa.jsx
+
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -31,7 +32,7 @@ const Mapa = () => {
     profundidadMax: '',
     puerto: '',
     embarcacion: '',
-    year: '', // Añadido
+    year: '',
   });
 
   const [filtrosDisponibles, setFiltrosDisponibles] = useState({
@@ -40,18 +41,16 @@ const Mapa = () => {
     puertos: [],
     embarcaciones: [],
     rangoProfundidad: { min: 0, max: 100 },
-    años: [], // Añadido
+    años: [],
   });
 
   const [isFilterOpen, setIsFilterOpen] = useState(true);
-  const [isApplyingFilter, setIsApplyingFilter] = useState(false);
 
   // Obtener datos desde la API
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
-      setIsApplyingFilter(true);
 
       // Construcción de parámetros de consulta
       const params = {
@@ -62,13 +61,13 @@ const Mapa = () => {
         rango_profundidad_max: filtros.profundidadMax || undefined,
         puerto: filtros.puerto || undefined,
         embarcacion: filtros.embarcacion || undefined,
-        year: filtros.year || undefined, // Añadido
+        year: filtros.year || undefined,
       };
 
-      // Obtener datos de coordenadas y filtros
+      // Obtener datos de coordenadas y filtros disponibles
       const [coordenadasResponse, filtrosResponse] = await Promise.all([
         api.get(`/localizacion_especies/`, { params }),
-        api.get(`/filtros-coordenadas/`, { params }), // Asegúrate de que este endpoint está correctamente configurado
+        api.get(`/filtros-coordenadas/`, { params }),
       ]);
 
       console.log('Datos obtenidos:', coordenadasResponse.data);
@@ -82,25 +81,21 @@ const Mapa = () => {
         puertos: filtrosResponse.data.puertos || [],
         embarcaciones: filtrosResponse.data.embarcaciones || [],
         rangoProfundidad: filtrosResponse.data.rango_profundidad || { min: 0, max: 100 },
-        años: filtrosResponse.data.años || [], // Añadido
+        años: filtrosResponse.data.años || [],
       });
     } catch (err) {
       setError('Error al cargar los datos del mapa.');
       console.error('Error al cargar los datos:', err);
     } finally {
       setLoading(false);
-      setIsApplyingFilter(false);
     }
   };
 
+  // Llamar a fetchData cuando los filtros cambien
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros]);
-
-  const aplicarFiltro = () => {
-    fetchData();
-  };
 
   const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
 
@@ -131,10 +126,8 @@ const Mapa = () => {
               </Row>
 
               <Row>
-
                 {/* Columna de Filtros */}
                 {isFilterOpen && (
-                  
                   <Col md={3} className="mb-3">
                     <h6 className="mb-0">Filtros</h6>
                     <FiltroMapa
@@ -145,9 +138,7 @@ const Mapa = () => {
                       puertos={filtrosDisponibles.puertos}
                       embarcaciones={filtrosDisponibles.embarcaciones}
                       rangoProfundidad={filtrosDisponibles.rangoProfundidad}
-                      años={filtrosDisponibles.años} // Añadido
-                      aplicarFiltro={aplicarFiltro}
-                      isApplyingFilter={isApplyingFilter}
+                      años={filtrosDisponibles.años}
                     />
                   </Col>
                 )}

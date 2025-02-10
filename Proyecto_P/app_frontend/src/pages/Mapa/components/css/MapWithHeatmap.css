@@ -1,26 +1,16 @@
-/* components/css/MapWithHeatmap.css */
+/* styles/MapWithHeatmap.css */
+.map-container {
+  position: relative;
+}
 
-.map-with-heatmap {
-    position: relative;
-    height: 100%;
-    width: 100%;
-  }
-  
-  .map-loading-overlay,
-  .map-no-data-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(255, 255, 255, 0.8);
-    padding: 10px 20px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    z-index: 1000;
-  }
-  
-  .map-no-data-overlay span {
-    color: #6c757d;
-  }
-  
+.error-message {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  z-index: 1000;
+}

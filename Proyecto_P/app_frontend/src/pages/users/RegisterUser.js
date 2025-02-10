@@ -1,3 +1,5 @@
+// src/components/RegisterUser.js
+
 import React, { useState } from 'react';
 import {
   TextField,
@@ -5,22 +7,20 @@ import {
   Grid,
   MenuItem,
   Alert,
-  CircularProgress
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 import api from '../../routes/api'; // Asegúrate de que la ruta sea correcta
-
-const roles = [
-  { value: true, label: 'Administrador' },
-  { value: false, label: 'Usuario Estándar' },
-  { value: false, label: 'editor' },
-];
+import { roles } from '../../constants/roles'; // Importa los roles definidos
 
 const RegisterUser = ({ handleClose }) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
-    is_superuser: false,
+    role: 'user', // Valor por defecto
   });
 
   const [error, setError] = useState('');
@@ -32,12 +32,12 @@ const RegisterUser = ({ handleClose }) => {
 
     setFormData({
       ...formData,
-      [name]: name === 'is_superuser' ? value === 'true' : value,  // Convertir string a boolean
+      [name]: value,
     });
   };
 
   const validateForm = () => {
-    if (!formData.username || !formData.email || !formData.password) {
+    if (!formData.username || !formData.email || !formData.password || !formData.role) {
       setError('Todos los campos son obligatorios.');
       return false;
     }
@@ -67,14 +67,14 @@ const RegisterUser = ({ handleClose }) => {
 
     try {
       const token = localStorage.getItem('access_token');
-      api.post(
-        '/users/register/', 
+      await api.post(
+        '/users/register/',
         {
           username: formData.username,
           email: formData.email,
           password: formData.password,
-          is_superuser: formData.is_superuser,
-          is_active: true,  // Se establece activo por defecto
+          role: formData.role, // Enviar el rol
+          is_active: true, // Se establece activo por defecto
         },
         {
           headers: {
@@ -85,7 +85,7 @@ const RegisterUser = ({ handleClose }) => {
       );
 
       setSuccess('Usuario registrado con éxito.');
-      setFormData({ username: '', email: '', password: '', is_superuser: false });
+      setFormData({ username: '', email: '', password: '', role: 'user' });
 
       setTimeout(() => {
         setSuccess(false);
@@ -150,22 +150,22 @@ const RegisterUser = ({ handleClose }) => {
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <TextField
-            select
-            label="Rol de Usuario"
-            variant="outlined"
-            fullWidth
-            name="is_superuser"
-            value={formData.is_superuser.toString()}
-            onChange={handleChange}
-            required
-          >
-            {roles.map((option) => (
-              <MenuItem key={option.value} value={option.value.toString()}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </TextField>
+          <FormControl fullWidth variant="outlined" required>
+            <InputLabel id="role-label">Rol de Usuario</InputLabel>
+            <Select
+              labelId="role-label"
+              label="Rol de Usuario"
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+            >
+              {roles.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Grid>
       </Grid>
 

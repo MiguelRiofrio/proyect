@@ -1,0 +1,65 @@
+/* AgregarActividadPesquera.css */
+
+/* Botón Guardar Personalizado */
+.btn-black {
+    background-color: #000000;
+    color: #ffffff;
+    border: none;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  
+  .btn-black:hover {
+    background-color: #333333;
+    transform: translateY(-2px);
+  }
+  
+  .btn-black:disabled {
+    background-color: #555555;
+    cursor: not-allowed;
+  }
+  
+  /* Botón Volver Personalizado */
+  .btn-secondary-custom {
+    background-color: #6c757d;
+    color: #ffffff;
+    border: none;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+  
+  .btn-secondary-custom:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+  }
+  
+  .btn-secondary-custom:disabled {
+    background-color: #adb5bd;
+    cursor: not-allowed;
+  }
+  
+  /* Ajuste del Espaciado entre Botones */
+  .button-group {
+    display: flex;
+    gap: 1rem; /* Espacio entre los botones */
+    flex-wrap: wrap; /* Permite que los botones se ajusten en pantallas pequeñas */
+    justify-content: center; /* Centra los botones horizontalmente */
+  }
+  
+  /* Ancho de los Botones */
+  .button-group .btn {
+    flex: 1 1 200px; /* Botones flexibles con un mínimo de 200px */
+    max-width: 250px; /* Ancho máximo para evitar que se estiren demasiado */
+  }
+  
+  /* Responsive: Ajuste de Margen en Pantallas Pequeñas */
+  @media (max-width: 576px) {
+    .button-group {
+      flex-direction: column; /* Apila los botones verticalmente */
+      gap: 0.5rem; /* Reduce el espacio entre botones */
+    }
+  
+    .button-group .btn {
+      width: 100%; /* Botones ocupan todo el ancho disponible */
+      max-width: none; /* Elimina el ancho máximo */
+    }
+  }
+  

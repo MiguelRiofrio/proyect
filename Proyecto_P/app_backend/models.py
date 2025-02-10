@@ -28,7 +28,7 @@ class Especie(models.Model):
     nombre_comun = models.CharField(max_length=150, null=True, blank=True, default="Sin nombre común")
 
 class ActividadPesquera(models.Model):
-    codigo_actividad = models.CharField(max_length=50, primary_key=True, default="default_actividad")
+    codigo_actividad = models.CharField(max_length=50, primary_key=True)
     fecha_salida = models.DateField(default="2000-01-01")
     fecha_entrada = models.DateField(default="2000-01-01")
     puerto_salida = models.ForeignKey(Puerto, related_name="salidas", on_delete=models.CASCADE, null=True, default=None)
@@ -43,7 +43,7 @@ class ActividadPesquera(models.Model):
 
 
 class Lance(models.Model):
-    codigo_lance = models.CharField(max_length=50, primary_key=True, default="default_lance")
+    codigo_lance = models.CharField(max_length=50, primary_key=True, )
     actividad = models.ForeignKey(ActividadPesquera, on_delete=models.CASCADE, null=True, default=None)
     numero_lance = models.IntegerField(default=0)
     calado_fecha = models.DateField(default="2000-01-01")
@@ -89,7 +89,7 @@ class LancePalangreCarnadas(models.Model):
     porcentaje_carnada = models.FloatField(default=0.0)
 
 class DatosCaptura(models.Model):
-    codigo_captura = models.CharField(max_length=50, primary_key=True, default="default_captura")
+    codigo_captura = models.CharField(max_length=50, primary_key=True,)
     lance = models.ForeignKey(Lance, on_delete=models.CASCADE, null=True, default=None)
     especie = models.ForeignKey(Especie, on_delete=models.CASCADE, null=True, default=None)
     individuos_retenidos = models.IntegerField(default=0)
@@ -99,7 +99,7 @@ class DatosCaptura(models.Model):
     
 
 class Avistamiento(models.Model):
-    codigo_avistamiento = models.CharField(max_length=50, primary_key=True, default="default_avistamiento")
+    codigo_avistamiento = models.CharField(max_length=50, primary_key=True)
     lance = models.ForeignKey(Lance, on_delete=models.CASCADE, null=True, default=None)
     especie = models.ForeignKey(Especie, on_delete=models.CASCADE, null=True, default=None)
     alimentandose = models.IntegerField(default=0)

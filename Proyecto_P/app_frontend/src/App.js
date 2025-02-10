@@ -1,11 +1,14 @@
+// src/App.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Drawer } from '@mui/material';
+import { Drawer, CssBaseline, ThemeProvider } from '@mui/material';
 import Header from './components/Header';
 import Sidebar from './components/Siderbar';
 import AppRoutes from './routes/AppRoutes';
 import './styles/App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import theme from './theme'; // Importa el tema personalizado
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,7 +45,7 @@ function App() {
     localStorage.setItem('user_role', role);
     setIsAuthenticated(true);
     setUserRole(role);
-    navigate('/');
+    navigate('/home');
   };
 
   const handleLogout = () => {
@@ -58,31 +61,39 @@ function App() {
   };
 
   if (isLoading) {
-    return <div>Cargando...</div>;
+    return <div className="loading-screen">Cargando...</div>;
   }
 
   return (
-    <div className="app-container">
-      {location.pathname !== '/login' && (
-        <header className="header">
-          <Header isAuthenticated={isAuthenticated} handleLogout={handleLogout} toggleSidebar={toggleSidebar} />
-        </header>
-      )}
+    <ThemeProvider theme={theme}>
+      {/* CssBaseline aplica una base consistente de estilos */}
+      <CssBaseline />
+      <div className="app-container">
+        {location.pathname !== '/login' && (
+          <header className="header">
+            <Header
+              isAuthenticated={isAuthenticated}
+              handleLogout={handleLogout}
+              toggleSidebar={toggleSidebar}
+            />
+          </header>
+        )}
 
-      <Drawer anchor="left" open={sidebarOpen} onClose={toggleSidebar}>
-        {isAuthenticated && <Sidebar />}
-      </Drawer>
+        <Drawer anchor="left" open={sidebarOpen} onClose={toggleSidebar}>
+          {isAuthenticated && <Sidebar />}
+        </Drawer>
 
-      <div className="main-content">
-        <div className="body-content">
-          <AppRoutes
-            isAuthenticated={isAuthenticated}
-            userRole={userRole}
-            handleLogin={handleLogin}
-          />
-        </div>
+        <main className="main-content">
+          <div className="body-content">
+            <AppRoutes
+              isAuthenticated={isAuthenticated}
+              userRole={userRole}
+              handleLogin={handleLogin}
+            />
+          </div>
+        </main>
       </div>
-    </div>
+    </ThemeProvider>
   );
 }
 

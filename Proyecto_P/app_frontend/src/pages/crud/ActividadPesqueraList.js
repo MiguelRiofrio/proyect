@@ -31,6 +31,8 @@ import {
   Add as AddIcon,
   Refresh as RefreshIcon,
   Search as SearchIcon,
+  Edit as EditIcon, 
+
 } from '@mui/icons-material';
 import api from '../../routes/api';
 
@@ -242,6 +244,15 @@ const ActividadPesqueraList = () => {
                             <VisibilityIcon />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title="Editar Detalle">
+                        <IconButton
+                            color="edit"
+                            onClick={() => navigate(`/editar/${actividad.codigo_actividad}`)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                      
                         <Tooltip title="Eliminar Actividad">
                           <IconButton
                             color="error"

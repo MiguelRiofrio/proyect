@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Table, Input, Nav, NavItem, NavLink, TabContent, TabPane, Button, FormGroup, Label } from 'reactstrap';
 import classnames from 'classnames';
 
-const AvistamientoForms = ({ avistamientos, setAvistamientos, especies = [] }) => {
+const AvistamientoForms = ({ avistamientos, setAvistamientos, especies = [], codigo_lance }) => {
   const [activeTab, setActiveTab] = useState('0');
 
   const toggle = (tab) => {
@@ -12,7 +12,14 @@ const AvistamientoForms = ({ avistamientos, setAvistamientos, especies = [] }) =
   };
 
   const agregarAvistamiento = () => {
+    const nuevoNumeroAvistamiento = avistamientos.length > 0
+    ? Math.max(...avistamientos.map(c => c.numero_avistamiento)) + 1
+    : 1;
+
+    const codigo_avistamiento = `A-${nuevoNumeroAvistamiento}-${codigo_lance}`;
+
     const nuevoAvistamiento = {
+      codigo_avistamiento,
       especie: { codigo_especie: 0 }, // Inicializado como objeto
       grupos_avi_int: '',
       alimentandose: 0,
@@ -97,19 +104,6 @@ const AvistamientoForms = ({ avistamientos, setAvistamientos, especies = [] }) =
                           </option>
                         ))}
                       </Input>
-                    </FormGroup>
-                  </td>
-                  <td>
-                    <FormGroup>
-                      <Label for={`grupos_avi_int-${index}`}>Grupos de Avistamiento</Label>
-                      <Input
-                        type="text"
-                        name="grupos_avi_int"
-                        id={`grupos_avi_int-${index}`}
-                        value={avistamiento.grupos_avi_int}
-                        onChange={(e) => handleAvistamientoChange(index, e)}
-                        placeholder="Ingrese grupos de avistamiento"
-                      />
                     </FormGroup>
                   </td>
                 </tr>

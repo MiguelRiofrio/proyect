@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.db.models import Q, Min, Max,Count
+from django.db.models import Q, Min, Max,Count,F
 from .. import models
 from rest_framework import status
 
@@ -169,37 +169,39 @@ class FiltroMapaAPIView(APIView):
             else:
                 return Response({"error": f"Tipo de filtro inválido: {tipo_filtro}"}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Función para aplicar filtros comunes
-            def aplicar_filtros(qs):
+            # Importar F para usar alias en valores
+            from django.db.models import F
+
+            # Función para aplicar filtros comunes excepto el filtro específico
+            def aplicar_filtros(qs, exclude_field=None):
                 if puerto_nombre:
                     qs = qs.filter(
                         Q(lance__actividad__puerto_salida__nombre_puerto__iexact=puerto_nombre) |
                         Q(lance__actividad__puerto_entrada__nombre_puerto__iexact=puerto_nombre)
                     )
-                if year_filter:
+                if year_filter and exclude_field != 'year':
                     try:
                         year = int(year_filter)
                         qs = qs.filter(lance__calado_fecha__year=year)
                     except ValueError:
                         raise ValueError("El año debe ser un número válido.")
-                if taxa_seleccionada:
+                if taxa_seleccionada and exclude_field != 'taxa':
                     qs = qs.filter(especie__taxa__iexact=taxa_seleccionada)
-                if especie_seleccionada:
+                if especie_seleccionada and exclude_field != 'especie':
                     qs = qs.filter(especie__nombre_comun__iexact=especie_seleccionada)
                 return qs
 
-            # Aplicar filtros si no es 'todos'
             if tipo_filtro != 'todos':
                 try:
-                    base_qs = aplicar_filtros(base_qs)
+                    base_qs_filtrado = aplicar_filtros(base_qs)
                 except ValueError as ve:
                     return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Taxas disponibles (filtradas por 'taxa_seleccionada' si aplica)
-                tasas_disponibles = base_qs.values_list('especie__taxa', flat=True).distinct().order_by('especie__taxa')
+                # Taxas disponibles sin filtrar por 'taxa_seleccionada'
+                tasas_disponibles = aplicar_filtros(base_qs, exclude_field='taxa').values_list('especie__taxa', flat=True).distinct().order_by('especie__taxa')
 
                 # Puertos disponibles
-                puertos_qs = base_qs.filter(
+                puertos_qs = base_qs_filtrado.filter(
                     Q(lance__actividad__puerto_salida__isnull=False) |
                     Q(lance__actividad__puerto_entrada__isnull=False)
                 )
@@ -211,46 +213,50 @@ class FiltroMapaAPIView(APIView):
                     {p for pair in puertos_disponibles for p in pair if p}
                 )
 
-                # Embarcaciones disponibles
-                embarcaciones_qs = base_qs.filter(
+                # Embarcaciones disponibles con claves renombradas
+                embarcaciones_qs = base_qs_filtrado.filter(
                     lance__actividad__embarcacion__isnull=False
                 ).values(
-                    'lance__actividad__embarcacion__nombre_embarcacion',
-                    'lance__actividad__embarcacion__matricula'
+                    nombre_embarcacion=F('lance__actividad__embarcacion__nombre_embarcacion'),
+                    matricula=F('lance__actividad__embarcacion__matricula')
                 ).distinct()
                 embarcaciones = list(embarcaciones_qs)
 
                 # Rango de profundidad
-                profundidad_rango = base_qs.aggregate(
+                profundidad_rango = base_qs_filtrado.aggregate(
                     min_profundidad=Min('lance__profundidad_suelo_marino'),
                     max_profundidad=Max('lance__profundidad_suelo_marino')
                 )
 
-                # Años disponibles
-                años_disponibles = base_qs.values_list(
-                    'lance__calado_fecha__year',
-                    flat=True
-                ).distinct().order_by('lance__calado_fecha__year')
+                # Años disponibles sin filtrar por 'year_filter'
+                try:
+                    años_disponibles = aplicar_filtros(base_qs, exclude_field='year').values_list(
+                        'lance__calado_fecha__year',
+                        flat=True
+                    ).distinct().order_by('lance__calado_fecha__year')
+                except ValueError as ve:
+                    return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Especies disponibles
-                especies_disponibles = base_qs.values_list(
+                # Especies disponibles sin filtrar por 'especie_seleccionada'
+                especies_disponibles = aplicar_filtros(base_qs, exclude_field='especie').values_list(
                     'especie__nombre_comun',
                     flat=True
                 ).distinct().order_by('especie__nombre_comun')
 
             elif tipo_filtro == 'todos':
-                # **Obtención de todas las taxas disponibles sin filtrar**
-                tasas_disponibles = models.Especie.objects.values_list('taxa', flat=True).distinct().order_by('taxa')
+                # **Obtención de todas las taxas disponibles sin filtrar por 'taxa_seleccionada'**
+                base_qs_all = models.Especie.objects.all()
+                if especie_seleccionada:
+                    base_qs_all = base_qs_all.filter(nombre_comun__iexact=especie_seleccionada)
+                tasas_disponibles = base_qs_all.values_list('taxa', flat=True).distinct().order_by('taxa')
 
-                # **Aplicar filtros comunes si se proporcionan**
+                # **Aplicar filtros comunes si se proporcionan (exceptuando 'taxa')**
                 try:
-                    base_qs_capturas = aplicar_filtros(base_qs_capturas)
-                    base_qs_avistamientos = aplicar_filtros(base_qs_avistamientos)
-                    base_qs_incidencias = aplicar_filtros(base_qs_incidencias)
+                    base_qs_capturas_filtrado = aplicar_filtros(base_qs_capturas, exclude_field='taxa')
+                    base_qs_avistamientos_filtrado = aplicar_filtros(base_qs_avistamientos, exclude_field='taxa')
+                    base_qs_incidencias_filtrado = aplicar_filtros(base_qs_incidencias, exclude_field='taxa')
                 except ValueError as ve:
                     return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
-
-                # Taxas disponibles ya están obtenidas anteriormente
 
                 # Puertos disponibles en todos los tipos de datos
                 def obtener_puertos(qs):
@@ -259,29 +265,29 @@ class FiltroMapaAPIView(APIView):
                         Q(lance__actividad__puerto_entrada__isnull=False)
                     ).values_list('lance__actividad__puerto_salida__nombre_puerto', 'lance__actividad__puerto_entrada__nombre_puerto')
 
-                puertos_capturas = obtener_puertos(base_qs_capturas)
-                puertos_avistamientos = obtener_puertos(base_qs_avistamientos)
-                puertos_incidencias = obtener_puertos(base_qs_incidencias)
+                puertos_capturas = obtener_puertos(base_qs_capturas_filtrado)
+                puertos_avistamientos = obtener_puertos(base_qs_avistamientos_filtrado)
+                puertos_incidencias = obtener_puertos(base_qs_incidencias_filtrado)
                 puertos_combinados = list(puertos_capturas) + list(puertos_avistamientos) + list(puertos_incidencias)
                 puertos_flat = sorted(
                     {p for pair in puertos_combinados for p in pair if p}
                 )
 
-                # Embarcaciones disponibles en todos los tipos de datos
+                # Embarcaciones disponibles en todos los tipos de datos con claves renombradas
                 def obtener_embarcaciones(qs):
                     return qs.filter(
                         lance__actividad__embarcacion__isnull=False
                     ).values(
-                        'lance__actividad__embarcacion__nombre_embarcacion',
-                        'lance__actividad__embarcacion__matricula'
+                        nombre_embarcacion=F('lance__actividad__embarcacion__nombre_embarcacion'),
+                        matricula=F('lance__actividad__embarcacion__matricula')
                     ).distinct()
 
-                embarcaciones_capturas = obtener_embarcaciones(base_qs_capturas)
-                embarcaciones_avistamientos = obtener_embarcaciones(base_qs_avistamientos)
-                embarcaciones_incidencias = obtener_embarcaciones(base_qs_incidencias)
+                embarcaciones_capturas = obtener_embarcaciones(base_qs_capturas_filtrado)
+                embarcaciones_avistamientos = obtener_embarcaciones(base_qs_avistamientos_filtrado)
+                embarcaciones_incidencias = obtener_embarcaciones(base_qs_incidencias_filtrado)
                 embarcaciones_combinadas = list(embarcaciones_capturas) + list(embarcaciones_avistamientos) + list(embarcaciones_incidencias)
                 embarcaciones_set = {
-                    (emb['lance__actividad__embarcacion__nombre_embarcacion'], emb['lance__actividad__embarcacion__matricula'])
+                    (emb['nombre_embarcacion'], emb['matricula'])
                     for emb in embarcaciones_combinadas
                 }
                 embarcaciones = [
@@ -296,36 +302,42 @@ class FiltroMapaAPIView(APIView):
                         max=Max('lance__profundidad_suelo_marino')
                     )
 
-                profundidad_min_capturas = obtener_profundidad(base_qs_capturas)['min'] or 0
-                profundidad_max_capturas = obtener_profundidad(base_qs_capturas)['max'] or 100
-                profundidad_min_avistamientos = obtener_profundidad(base_qs_avistamientos)['min'] or 0
-                profundidad_max_avistamientos = obtener_profundidad(base_qs_avistamientos)['max'] or 100
-                profundidad_min_incidencias = obtener_profundidad(base_qs_incidencias)['min'] or 0
-                profundidad_max_incidencias = obtener_profundidad(base_qs_incidencias)['max'] or 100
+                profundidad_min_capturas = obtener_profundidad(base_qs_capturas_filtrado)['min'] or 0
+                profundidad_max_capturas = obtener_profundidad(base_qs_capturas_filtrado)['max'] or 100
+                profundidad_min_avistamientos = obtener_profundidad(base_qs_avistamientos_filtrado)['min'] or 0
+                profundidad_max_avistamientos = obtener_profundidad(base_qs_avistamientos_filtrado)['max'] or 100
+                profundidad_min_incidencias = obtener_profundidad(base_qs_incidencias_filtrado)['min'] or 0
+                profundidad_max_incidencias = obtener_profundidad(base_qs_incidencias_filtrado)['max'] or 100
                 min_profundidad = min(profundidad_min_capturas, profundidad_min_avistamientos, profundidad_min_incidencias)
                 max_profundidad = max(profundidad_max_capturas, profundidad_max_avistamientos, profundidad_max_incidencias)
                 profundidad_rango = {'min_profundidad': min_profundidad, 'max_profundidad': max_profundidad}
 
-                # Años disponibles en todos los tipos de datos
-                años_capturas = base_qs_capturas.values_list('lance__calado_fecha__year', flat=True).distinct()
-                años_avistamientos = base_qs_avistamientos.values_list('lance__calado_fecha__year', flat=True).distinct()
-                años_incidencias = base_qs_incidencias.values_list('lance__calado_fecha__year', flat=True).distinct()
-                años_disponibles = sorted(
-                    set(años_capturas) | set(años_avistamientos) | set(años_incidencias)
-                )
+                # Años disponibles sin filtrar por 'year_filter'
+                try:
+                    años_capturas = aplicar_filtros(base_qs_capturas, exclude_field='year').values_list('lance__calado_fecha__year', flat=True).distinct()
+                    años_avistamientos = aplicar_filtros(base_qs_avistamientos, exclude_field='year').values_list('lance__calado_fecha__year', flat=True).distinct()
+                    años_incidencias = aplicar_filtros(base_qs_incidencias, exclude_field='year').values_list('lance__calado_fecha__year', flat=True).distinct()
+                    años_disponibles = sorted(
+                        set(años_capturas) | set(años_avistamientos) | set(años_incidencias)
+                    )
+                except ValueError as ve:
+                    return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Especies disponibles en todos los tipos de datos, considerando el filtro de taxa
-                def obtener_especies(qs):
-                    if taxa_seleccionada:
-                        return qs.filter(especie__taxa__iexact=taxa_seleccionada).values_list('especie__nombre_comun', flat=True).distinct()
-                    return qs.values_list('especie__nombre_comun', flat=True).distinct()
+                # Especies disponibles sin filtrar por 'especie_seleccionada'
+                especies_capturas = aplicar_filtros(base_qs_capturas, exclude_field='especie').values_list(
+                    'especie__nombre_comun',
+                    flat=True
+                ).distinct()
+                especies_avistamientos = aplicar_filtros(base_qs_avistamientos, exclude_field='especie').values_list(
+                    'especie__nombre_comun',
+                    flat=True
+                ).distinct()
+                especies_incidencias = aplicar_filtros(base_qs_incidencias, exclude_field='especie').values_list(
+                    'especie__nombre_comun',
+                    flat=True
+                ).distinct()
 
-                especies_capturas = obtener_especies(base_qs_capturas)
-                especies_avistamientos = obtener_especies(base_qs_avistamientos)
-                especies_incidencias = obtener_especies(base_qs_incidencias)
-                especies_disponibles = sorted(
-                    set(especies_capturas) | set(especies_avistamientos) | set(especies_incidencias)
-                )
+                especies_disponibles = sorted(set(especies_capturas) | set(especies_avistamientos) | set(especies_incidencias))
 
             # Construcción de la respuesta
             respuesta = {
@@ -358,7 +370,7 @@ class FiltroMapaAPIView(APIView):
                     respuesta["resumen_por_puerto"] = [
                         {
                             "puerto": puerto,
-                            "total_embarcaciones": contar_embarcaciones(base_qs, puerto)
+                            "total_embarcaciones": contar_embarcaciones(base_qs_filtrado, puerto)
                         }
                         for puerto in puertos_flat
                     ]
@@ -367,9 +379,9 @@ class FiltroMapaAPIView(APIView):
                     resumen_por_puerto = []
                     for puerto in puertos_flat:
                         total_embarcaciones = (
-                            contar_embarcaciones(base_qs_capturas, puerto) +
-                            contar_embarcaciones(base_qs_avistamientos, puerto) +
-                            contar_embarcaciones(base_qs_incidencias, puerto)
+                            contar_embarcaciones(base_qs_capturas_filtrado, puerto) +
+                            contar_embarcaciones(base_qs_avistamientos_filtrado, puerto) +
+                            contar_embarcaciones(base_qs_incidencias_filtrado, puerto)
                         )
                         resumen_por_puerto.append({
                             "puerto": puerto,
@@ -381,4 +393,3 @@ class FiltroMapaAPIView(APIView):
 
         except Exception as e:
             return Response({"error": f"Error al obtener los datos: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-

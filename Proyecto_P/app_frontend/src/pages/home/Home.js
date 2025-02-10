@@ -3,7 +3,24 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../routes/api'; // Importar Axios
-import './Home.css';
+import {
+  Box,
+  Typography,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+  CircularProgress,
+  Alert,
+  Container,
+  Stack,
+} from '@mui/material';
+import {
+  Map as MapIcon,
+  BarChart as BarChartIcon,
+  Info as InfoIcon,
+  Waves as WavesIcon,
+} from '@mui/icons-material';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -28,72 +45,242 @@ const Home = () => {
   }, []);
 
   if (loading) {
-    return <div className="loading">Cargando datos...</div>;
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (error) {
-    return <div className="error">Error: {error}</div>;
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Alert severity="error">{error}</Alert>
+      </Container>
+    );
   }
 
   return (
-    <div className="home-container">
+    <Container sx={{ py: 8 }}>
       {/* Encabezado */}
-      <div className="home-header">
-        <h1>🌊 Aplicación Análisis de Especies Vulnerables IPIAP</h1>
-        <p>
-          Descubre y analiza datos sobre las especies marinas. 
-          Usa nuestras herramientas interactivas para explorar mapas, gráficos y más.
-        </p>
-        <button className="cta-button" onClick={() => navigate('/dashboard')}>
+      <Box
+        sx={{
+          textAlign: 'center',
+          mb: 6,
+        }}
+      >
+        <Typography variant="h3" component="h1" gutterBottom>
+         Programa de Análisis de Especies Vulnerables IPIAP
+        </Typography>
+        <Typography variant="h6" color="textSecondary">
+          Descubre y analiza datos sobre las especies marinas. Usa nuestras herramientas para explorar mapas, gráficos y más.
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          size="large"
+          sx={{ mt: 4 }}
+          onClick={() => navigate('/dashboard')}
+          startIcon={<WavesIcon />}
+        >
           Comenzar
-        </button>
-      </div>
+        </Button>
+      </Box>
 
       {/* Navegación */}
-      <div className="home-navigation">
-        <button className="nav-button" onClick={() => navigate('/mapa')}>
-          🌍 Explorar el Mapa
-        </button>
-        <button className="nav-button" onClick={() => navigate('/dashboard')}>
-          📊 Ver Gráficos
-        </button>
-        <button className="nav-button" onClick={() => navigate('/reporte')}>
-          ℹ️ Más Información
-        </button>
-      </div>
+      <Box
+        sx={{
+          mb: 6,
+        }}
+      >
+        <Grid container spacing={2} justifyContent="center">
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              color="primary"
+              fullWidth
+              size="large"
+              startIcon={<MapIcon />}
+              onClick={() => navigate('/mapa')}
+            >
+              Explorar el Mapa
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              color="primary"
+              fullWidth
+              size="large"
+              startIcon={<BarChartIcon />}
+              onClick={() => navigate('/dashboard')}
+            >
+              Ver Gráficos
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              color="primary"
+              fullWidth
+              size="large"
+              startIcon={<InfoIcon />}
+              onClick={() => navigate('/reporte')}
+            >
+              Más Información
+            </Button>
+          </Grid>
+        </Grid>
+      </Box>
 
       {/* Resumen General */}
-      <div className="home-stats">
-        <h2>📋 Datos Destacados</h2>
-        <div className="stats-grid">
-          <div className="stat-card">
-            <h3>Total de Especies</h3>
-            <p>{kpi.total_especies}</p>
-          </div>
-          <div className="stat-card">
-            <h3>Observaciones Registradas</h3>
-            <p>{kpi.total_avistamientos}</p>
-          </div>
-          <div className="stat-card">
-            <h3>Incidencias Registradas</h3>
-            <p>{kpi.total_incidencias}</p>
-          </div>
-          <div className="stat-card">
-            <h3>Especie Más Común</h3>
-            <p>
-              {kpi.especie_mas_comun.especie__nombre_comun} 
-              <br />
-              <small>({kpi.especie_mas_comun.total_captura} capturas)</small>
-            </p>
-          </div>
-          {/* Nueva Tarjeta para el Índice de Diversidad de Shannon */}
-          <div className="stat-card">
-            <h3>Índice de Diversidad de Shannon</h3>
-            <p>{kpi.indice_diversidad_shannon}</p>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Box>
+        <Typography variant="h4" gutterBottom align="center">
+           Datos Destacados
+        </Typography>
+        <Grid container spacing={4}>
+          {/* Total de Especies */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                p: 2,
+                boxShadow: 3,
+                transition: 'transform 0.3s',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                },
+              }}
+            >
+              <Typography variant="h6" gutterBottom>
+                Total de Especies
+              </Typography>
+              <Typography variant="h4" color="primary">
+                {kpi.total_especies}
+              </Typography>
+            </Card>
+          </Grid>
+
+          {/* Observaciones Registradas */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                p: 2,
+                boxShadow: 3,
+                transition: 'transform 0.3s',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                },
+              }}
+            >
+              <Typography variant="h6" gutterBottom>
+                Observaciones Registradas
+              </Typography>
+              <Typography variant="h4" color="primary">
+                {kpi.total_avistamientos}
+              </Typography>
+            </Card>
+          </Grid>
+
+          {/* Incidencias Registradas */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                p: 2,
+                boxShadow: 3,
+                transition: 'transform 0.3s',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                },
+              }}
+            >
+              <Typography variant="h6" gutterBottom>
+                Incidencias Registradas
+              </Typography>
+              <Typography variant="h4" color="primary">
+                {kpi.total_incidencias}
+              </Typography>
+            </Card>
+          </Grid>
+
+          {/* Especie Más Común */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                p: 2,
+                boxShadow: 3,
+                transition: 'transform 0.3s',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                },
+              }}
+            >
+              <Typography variant="h6" gutterBottom>
+                Especie Más Común
+              </Typography>
+              <Typography variant="h5" color="primary">
+                {kpi.especie_mas_comun.especie__nombre_comun}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                ({kpi.especie_mas_comun.total_captura} capturas)
+              </Typography>
+            </Card>
+          </Grid>
+
+          {/* Índice de Diversidad de Shannon */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                p: 2,
+                boxShadow: 3,
+                transition: 'transform 0.3s',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                },
+              }}
+            >
+              <Typography variant="h6" gutterBottom>
+                Índice de Diversidad de Shannon
+              </Typography>
+              <Typography variant="h4" color="primary">
+                {kpi.indice_diversidad_shannon}
+              </Typography>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
+    </Container>
   );
 };
 

@@ -60,13 +60,14 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                 actividad_data = request.data
 
                 # Validar campos requeridos
-                required_fields = ['codigo_actividad', 'fecha_salida', 'fecha_entrada', 'tipo_arte_pesca',
-                                   'puerto_salida', 'puerto_entrada', 'embarcacion', 'armador', 'capitan',
-                                   'observador', 'ingresado']
+                required_fields = [
+                    'codigo_actividad', 'fecha_salida', 'fecha_entrada', 'tipo_arte_pesca',
+                    'puerto_salida', 'puerto_entrada', 'embarcacion', 'armador', 'capitan',
+                    'observador', 'ingresado'
+                ]
                 for field in required_fields:
                     if field not in actividad_data:
-                        return Response({"error": f"Campo '{field}' es requerido."},
-                                        status=status.HTTP_400_BAD_REQUEST)
+                        raise ValidationError(f"Campo '{field}' es requerido.")
 
                 # Crear actividad
                 actividad = models.ActividadPesquera.objects.create(
@@ -91,16 +92,22 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                 lances_data = actividad_data.get('lances', [])
                 for lance_data in lances_data:
                     # Validar campos requeridos para cada lance (sin 'tipo')
-                    lance_required_fields = ['codigo_lance', 'numero_lance', 'calado_fecha',
-                                             'calado_hora', 'profundidad_suelo_marino', 'detalles']
+                    lance_required_fields = [
+                        'codigo_lance', 'numero_lance', 'calado_fecha',
+                        'calado_hora', 'profundidad_suelo_marino', 'detalles'
+                    ]
                     for field in lance_required_fields:
                         if field not in lance_data:
-                            return Response({"error": f"Campo '{field}' es requerido en lances."},
-                                            status=status.HTTP_400_BAD_REQUEST)
+                            raise ValidationError(f"Campo '{field}' es requerido en lances.")
+
+                    # Verificar si el lance ya existe
+                    codigo_lance = lance_data['codigo_lance']
+                    if models.Lance.objects.filter(codigo_lance=codigo_lance).exists():
+                        raise ValidationError(f"Lance con código '{codigo_lance}' ya existe.")
 
                     # Crear lance sin el campo 'tipo'
                     lance = models.Lance.objects.create(
-                        codigo_lance=lance_data['codigo_lance'],
+                        codigo_lance=codigo_lance,
                         numero_lance=lance_data['numero_lance'],
                         calado_fecha=lance_data['calado_fecha'],
                         calado_hora=lance_data['calado_hora'],
@@ -111,6 +118,14 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                     # Crear coordenadas si existen
                     coordenadas = lance_data.get('coordenadas')
                     if coordenadas:
+                        coordenadas_required_fields = [
+                            'latitud_ns', 'latitud_grados', 'latitud_minutos',
+                            'longitud_w', 'longitud_grados', 'longitud_minutos'
+                        ]
+                        for field in coordenadas_required_fields:
+                            if field not in coordenadas:
+                                raise ValidationError(f"Campo '{field}' es requerido en coordenadas.")
+
                         models.Coordenadas.objects.create(
                             codigo_lance=lance,
                             latitud_ns=coordenadas['latitud_ns'],
@@ -123,17 +138,21 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
 
                     # Obtener detalles del lance
                     detalles = lance_data.get('detalles', {})
+                    
+                    if tipo_arte_pesca=='':
+                        required_fields = []
 
                     # Manejar detalles basados en el tipo de arte de pesca de la actividad
-                    if tipo_arte_pesca == 'palangre':
+                    elif tipo_arte_pesca == 'palangre':
                         # Validar campos requeridos para palangre
-                        palangre_required_fields = ['Tipo_anzuelo', 'tamano_anzuelo',
-                                                    'cantidad_anzuelos', 'linea_madre_metros',
-                                                    'profundidad_anzuelo_metros', 'carnadas']
+                        palangre_required_fields = [
+                            'Tipo_anzuelo', 'tamano_anzuelo',
+                            'cantidad_anzuelos', 'linea_madre_metros',
+                            'profundidad_anzuelo_metros', 'carnadas'
+                        ]
                         for field in palangre_required_fields:
                             if field not in detalles:
-                                return Response({"error": f"Campo '{field}' es requerido en detalles de palangre."},
-                                                status=status.HTTP_400_BAD_REQUEST)
+                                raise ValidationError(f"Campo '{field}' es requerido en detalles de palangre.")
 
                         lance_palangre = models.LancePalangre.objects.create(
                             codigo_lance=lance,
@@ -148,8 +167,7 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                         carnadas_data = detalles.get('carnadas', [])
                         for carnada_data in carnadas_data:
                             if 'codigo_tipo_carnada' not in carnada_data or 'porcentaje_carnada' not in carnada_data:
-                                return Response({"error": "Campos 'codigo_tipo_carnada' y 'porcentaje_carnada' son requeridos en carnadas."},
-                                                status=status.HTTP_400_BAD_REQUEST)
+                                raise ValidationError("Campos 'codigo_tipo_carnada' y 'porcentaje_carnada' son requeridos en carnadas.")
                             models.LancePalangreCarnadas.objects.create(
                                 codigo_lance_palangre=lance_palangre,
                                 codigo_tipo_carnada_id=carnada_data['codigo_tipo_carnada'],
@@ -161,8 +179,7 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                         arrastre_required_fields = ['ted', 'copo', 'tunel', 'pico']
                         for field in arrastre_required_fields:
                             if field not in detalles:
-                                return Response({"error": f"Campo '{field}' es requerido en detalles de arrastre."},
-                                                status=status.HTTP_400_BAD_REQUEST)
+                                raise ValidationError(f"Campo '{field}' es requerido en detalles de arrastre.")
 
                         models.LanceArrastre.objects.create(
                             codigo_lance=lance,
@@ -177,8 +194,7 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                         cerco_required_fields = ['altura_red', 'longitud_red', 'malla_cabecero', 'malla_cuerpo']
                         for field in cerco_required_fields:
                             if field not in detalles:
-                                return Response({"error": f"Campo '{field}' es requerido en detalles de cerco."},
-                                                status=status.HTTP_400_BAD_REQUEST)
+                                raise ValidationError(f"Campo '{field}' es requerido en detalles de cerco.")
 
                         models.LanceCerco.objects.create(
                             codigo_lance=lance,
@@ -189,16 +205,15 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                         )
 
                     else:
-                        return Response({"error": f"Tipo de arte de pesca '{tipo_arte_pesca}' no reconocido."},
-                                        status=status.HTTP_400_BAD_REQUEST)
+                        raise ValidationError(f"Tipo de arte de pesca '{tipo_arte_pesca}' no reconocido.")
 
                     # Crear capturas
                     capturas = lance_data.get('capturas', [])
                     for captura_data in capturas:
                         if 'especie' not in captura_data or 'codigo_especie' not in captura_data['especie']:
-                            return Response({"error": "Campo 'codigo_especie' es requerido en captura."},
-                                            status=status.HTTP_400_BAD_REQUEST)
+                            raise ValidationError("Campo 'codigo_especie' es requerido en captura.")
                         models.DatosCaptura.objects.create(
+                            codigo_captura=captura_data['codigo_captura'],
                             lance=lance,
                             individuos_retenidos=captura_data['individuos_retenidos'],
                             individuos_descarte=captura_data['individuos_descarte'],
@@ -211,9 +226,9 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                     avistamientos = lance_data.get('avistamientos', [])
                     for avistamiento_data in avistamientos:
                         if 'especie' not in avistamiento_data or 'codigo_especie' not in avistamiento_data['especie']:
-                            return Response({"error": "Campo 'codigo_especie' es requerido en avistamiento."},
-                                            status=status.HTTP_400_BAD_REQUEST)
+                            raise ValidationError("Campo 'codigo_especie' es requerido en avistamiento.")
                         models.Avistamiento.objects.create(
+                            codigo_avistamiento=avistamiento_data['codigo_avistamiento'],
                             lance=lance,
                             alimentandose=avistamiento_data['alimentandose'],
                             deambulando=avistamiento_data['deambulando'],
@@ -224,18 +239,19 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                     # Crear incidencias
                     incidencias = lance_data.get('incidencias', [])
                     for incidencia_data in incidencias:
-                        required_incidencia_fields = ['especie', 'herida_grave', 'herida_leve',
-                                                      'muerto', 'total_individuos', 'observacion']
+                        required_incidencia_fields = [
+                            'especie', 'herida_grave', 'herida_leve',
+                            'muerto', 'total_individuos', 'observacion'
+                        ]
                         for field in required_incidencia_fields:
                             if field not in incidencia_data:
-                                return Response({"error": f"Campo '{field}' es requerido en incidencia."},
-                                                status=status.HTTP_400_BAD_REQUEST)
+                                raise ValidationError(f"Campo '{field}' es requerido en incidencia.")
 
                         if 'codigo_especie' not in incidencia_data['especie']:
-                            return Response({"error": "Campo 'codigo_especie' es requerido en especie de incidencia."},
-                                            status=status.HTTP_400_BAD_REQUEST)
+                            raise ValidationError("Campo 'codigo_especie' es requerido en especie de incidencia.")
 
                         incidencia = models.Incidencia.objects.create(
+                            codigo_incidencia=incidencia_data['codigo_incidencia'],
                             lance=lance,
                             herida_grave=incidencia_data['herida_grave'],
                             herida_leve=incidencia_data['herida_leve'],
@@ -250,7 +266,7 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                         if 'aves' in detalles_incidencia:
                             aves = detalles_incidencia['aves']
                             models.IncidenciaAves.objects.create(
-                                incidencia=incidencia,
+                                codigo_incidencia=incidencia,
                                 aves_pico=aves.get('pico', 0),
                                 aves_patas=aves.get('patas', 0),
                                 aves_alas=aves.get('alas', 0)
@@ -258,7 +274,7 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                         if 'mamiferos' in detalles_incidencia:
                             mamiferos = detalles_incidencia['mamiferos']
                             models.IncidenciaMamiferos.objects.create(
-                                incidencia=incidencia,
+                                codigo_incidencia=incidencia,
                                 mamiferos_hocico=mamiferos.get('hocico', 0),
                                 mamiferos_cuello=mamiferos.get('cuello', 0),
                                 mamiferos_cuerpo=mamiferos.get('cuerpo', 0)
@@ -266,7 +282,7 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                         if 'tortugas' in detalles_incidencia:
                             tortugas = detalles_incidencia['tortugas']
                             models.IncidenciaTortugas.objects.create(
-                                incidencia=incidencia,
+                                codigo_incidencia=incidencia,
                                 tortugas_pico=tortugas.get('pico', 0),
                                 tortugas_cuerpo=tortugas.get('cuerpo', 0),
                                 tortugas_aleta=tortugas.get('aleta', 0)
@@ -274,7 +290,7 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
                         if 'palangre' in detalles_incidencia:
                             palangre = detalles_incidencia['palangre']
                             models.IncidenciaPalangre.objects.create(
-                                incidencia=incidencia,
+                                codigo_incidencia=incidencia,
                                 palangre_orinque=palangre.get('orinque', 0),
                                 palangre_reinal=palangre.get('reinal', 0),
                                 palangre_anzuelo=palangre.get('anzuelo', 0),
@@ -283,9 +299,230 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
 
             return Response({"message": "Actividad creada exitosamente."}, status=status.HTTP_201_CREATED)
 
+        except ValidationError as ve:
+            # Manejar errores de validación y asegurar que la transacción se revierta
+            return Response({"error": ve.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        except IntegrityError as ie:
+            # Manejar errores de integridad de la base de datos
+            if 'Duplicate entry' in str(ie):
+                return Response({"error": "Se detectó un valor duplicado en la inserción. Verifica los campos únicos."},
+                                status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({"error": "Error de integridad de la base de datos: " + str(ie)},
+                                status=status.HTTP_400_BAD_REQUEST)
+
         except Exception as e:
+            # Manejar cualquier otro error inesperado
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
+    @action(detail=True, methods=['get'], url_path='details-raw')
+    def Detalle_actividad_d(self, request, pk=None):
+        """
+        Devuelve los detalles completos de una actividad pesquera, incluyendo datos de claves foráneas
+        y detalles anidados de lances, capturas, avistamientos e incidencias,
+        pero sin convertir las coordenadas (se devuelven tal cual están en la BD).
+        """
+        try:
+            actividad = models.ActividadPesquera.objects.select_related(
+                'puerto_salida', 'puerto_entrada', 'embarcacion',
+                'armador', 'capitan', 'observador', 'ingresado'
+            ).get(pk=pk)
+
+            response_data = {
+                'codigo_actividad': actividad.codigo_actividad,
+                'fecha_salida': actividad.fecha_salida,
+                'fecha_entrada': actividad.fecha_entrada,
+                'tipo_arte_pesca': actividad.tipo_arte_pesca,
+                'pesca_objetivo': actividad.pesca_objetivo,
+                'puerto_salida': {
+                    "id": actividad.puerto_salida.codigo_puerto,
+                    "nombre": actividad.puerto_salida.nombre_puerto
+                } if actividad.puerto_salida else None,
+                'puerto_entrada': {
+                    "id": actividad.puerto_entrada.codigo_puerto,
+                    "nombre": actividad.puerto_entrada.nombre_puerto
+                } if actividad.puerto_entrada else None,
+                'embarcacion': {
+                    "codigo_embarcacion": actividad.embarcacion.codigo_embarcacion,
+                    "nombre_embarcacion": actividad.embarcacion.nombre_embarcacion,
+                    "matricula": actividad.embarcacion.matricula
+                } if actividad.embarcacion else None,
+                'armador': {
+                    "id": actividad.armador.codigo_persona,
+                    "nombre": actividad.armador.nombre
+                } if actividad.armador else None,
+                'capitan': {
+                    "id": actividad.capitan.codigo_persona,
+                    "nombre": actividad.capitan.nombre
+                } if actividad.capitan else None,
+                'observador': {
+                    "id": actividad.observador.codigo_persona,
+                    "nombre": actividad.observador.nombre
+                } if actividad.observador else None,
+                'ingresado': {
+                    "id": actividad.ingresado.codigo_persona,
+                    "nombre": actividad.ingresado.nombre
+                } if actividad.ingresado else None,
+                'lances': []
+            }
+
+            # Se obtienen los lances con el related de coordenadas sin convertir
+            lances = models.Lance.objects.filter(actividad=actividad).select_related('coordenadas')
+
+            for lance in lances:
+                lance_data = {
+                    'codigo_lance': lance.codigo_lance,
+                    'numero_lance': lance.numero_lance,
+                    'calado_fecha': lance.calado_fecha,
+                    'calado_hora': lance.calado_hora,
+                    'profundidad_suelo_marino': lance.profundidad_suelo_marino,
+                    # En vez de usar convertir_coordenadas, devolvemos los campos crudos
+                    'coordenadas': {
+                        "latitud_ns": lance.coordenadas.latitud_ns,
+                        "latitud_grados": lance.coordenadas.latitud_grados,
+                        "latitud_minutos": lance.coordenadas.latitud_minutos,
+                        "longitud_w": lance.coordenadas.longitud_w,
+                        "longitud_grados": lance.coordenadas.longitud_grados,
+                        "longitud_minutos": lance.coordenadas.longitud_minutos
+                    } if lance.coordenadas else None,
+                    'detalles': {}
+                }
+
+                # Detalles de Palangre y sus Carnadas
+                if hasattr(lance, 'lancepalangre'):
+                    lance_palangre = lance.lancepalangre
+                    carnadas_palangre = models.LancePalangreCarnadas.objects.filter(
+                        codigo_lance_palangre=lance_palangre
+                    )
+                    lance_data['detalles']['palangre'] = {
+                        "tamano_anzuelo": lance_palangre.tamano_anzuelo,
+                        "cantidad_anzuelos": lance_palangre.cantidad_anzuelos,
+                        "linea_madre_metros": lance_palangre.linea_madre_metros,
+                        "profundidad_anzuelo_metros": lance_palangre.profundidad_anzuelo_metros,
+                        "carnadas": [
+                            {
+                                "codigo_carnada": c.codigo_tipo_carnada.codigo_tipo_carnada,
+                                "nombre_carnada": c.codigo_tipo_carnada.nombre_carnada,
+                                "porcentaje_carnada": c.porcentaje_carnada
+                            }
+                            for c in carnadas_palangre
+                        ]
+                    }
+
+                elif hasattr(lance, 'lancecerco'):
+                    lance_data['detalles']['cerco'] = {
+                        "altura_red": lance.lancecerco.altura_red,
+                        "longitud_red": lance.lancecerco.longitud_red,
+                        "malla_cabecero": lance.lancecerco.malla_cabecero,
+                        "malla_cuerpo": lance.lancecerco.malla_cuerpo
+                    }
+
+                elif hasattr(lance, 'lancearrastre'):
+                    lance_data['detalles']['arrastre'] = {
+                        "ted": lance.lancearrastre.ted,
+                        "copo": lance.lancearrastre.copo,
+                        "tunel": lance.lancearrastre.tunel,
+                        "pico": lance.lancearrastre.pico
+                    }
+
+                # Capturas
+                datos_captura = models.DatosCaptura.objects.filter(lance=lance)
+                lance_data['capturas'] = [
+                    {
+                        "codigo_captura": c.codigo_captura,
+                        "individuos_retenidos": c.individuos_retenidos,
+                        "individuos_descarte": c.individuos_descarte,
+                        "peso_retenido": c.peso_retenido,
+                        "peso_descarte": c.peso_descarte,
+                        "especie": {
+                            "codigo_especie": c.especie.codigo_especie,
+                            "nombre_cientifico": c.especie.nombre_cientifico
+                        } if c.especie else None
+                    }
+                    for c in datos_captura
+                ]
+
+                # Avistamientos
+                avistamientos = models.Avistamiento.objects.filter(lance=lance)
+                lance_data['avistamientos'] = [
+                    {
+                        "codigo_avistamiento": a.codigo_avistamiento,
+                        "alimentandose": a.alimentandose,
+                        "deambulando": a.deambulando,
+                        "en_reposo": a.en_reposo,
+                        "especie": {
+                            "codigo_especie": a.especie.codigo_especie,
+                            "nombre_cientifico": a.especie.nombre_cientifico
+                        } if a.especie else None
+                    }
+                    for a in avistamientos
+                ]
+
+                # Incidencias
+                incidencias = models.Incidencia.objects.filter(lance=lance)
+                lance_data['incidencias'] = []
+                for inc in incidencias:
+                    inc_data = {
+                        "codigo_incidencia": inc.codigo_incidencia,
+                        "herida_grave": inc.herida_grave,
+                        "herida_leve": inc.herida_leve,
+                        "muerto": inc.muerto,
+                        "total_individuos": inc.Totalindividuos,
+                        "observacion": inc.observacion,
+                        "especie": {
+                            "codigo_especie": inc.especie.codigo_especie,
+                            "nombre_cientifico": inc.especie.nombre_cientifico
+                        } if inc.especie else None,
+                        "detalles": {
+                            "aves": None,
+                            "mamiferos": None,
+                            "tortugas": None,
+                            "palangre": None
+                        }
+                    }
+                    # Aves
+                    if hasattr(inc, 'incidenciaaves'):
+                        inc_data['detalles']['aves'] = {
+                            "pico": inc.incidenciaaves.aves_pico,
+                            "patas": inc.incidenciaaves.aves_patas,
+                            "alas": inc.incidenciaaves.aves_alas
+                        }
+                    # Mamíferos
+                    if hasattr(inc, 'incidenciamamiferos'):
+                        inc_data['detalles']['mamiferos'] = {
+                            "hocico": inc.incidenciamamiferos.mamiferos_hocico,
+                            "cuello": inc.incidenciamamiferos.mamiferos_cuello,
+                            "cuerpo": inc.incidenciamamiferos.mamiferos_cuerpo
+                        }
+                    # Tortugas
+                    if hasattr(inc, 'incidenciatortugas'):
+                        inc_data['detalles']['tortugas'] = {
+                            "pico": inc.incidenciatortugas.tortugas_pico,
+                            "cuerpo": inc.incidenciatortugas.tortugas_cuerpo,
+                            "aleta": inc.incidenciatortugas.tortugas_aleta
+                        }
+                    # Palangre
+                    if hasattr(inc, 'incidenciapalangre'):
+                        inc_data['detalles']['palangre'] = {
+                            "orinque": inc.incidenciapalangre.palangre_orinque,
+                            "reinal": inc.incidenciapalangre.palangre_reinal,
+                            "anzuelo": inc.incidenciapalangre.palangre_anzuelo,
+                            "linea_madre": inc.incidenciapalangre.palangre_linea_madre
+                        }
+
+                    lance_data['incidencias'].append(inc_data)
+
+                # Agregar el lance al response
+                response_data['lances'].append(lance_data)
+
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except models.ActividadPesquera.DoesNotExist:
+            return Response({"error": "Actividad no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['get'], url_path='details')
     def Detalle_actividad(self, request, pk=None):
@@ -475,6 +712,176 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+    @action(detail=True, methods=['put'], url_path='edit')
+    def edit_activity(self, request, pk=None):
+        """
+        Editar una actividad pesquera y sus registros anidados (lances, capturas, avistamientos, incidencias).
+        Para simplificar, se eliminarán los registros anidados actuales y se recrearán con la nueva información.
+        """
+        try:
+            with transaction.atomic():
+                # Buscar la actividad a editar
+                actividad = get_object_or_404(models.ActividadPesquera, pk=pk)
+                actividad_data = request.data
+
+                # Validar campos requeridos de la actividad (esto puede modificarse si se admite actualización parcial)
+                required_fields = [
+                    'codigo_actividad', 'fecha_salida', 'fecha_entrada', 'tipo_arte_pesca',
+                    'puerto_salida', 'puerto_entrada', 'embarcacion', 'armador', 'capitan',
+                    'observador', 'ingresado'
+                ]
+                for field in required_fields:
+                    if field not in actividad_data:
+                        raise ValidationError(f"Campo '{field}' es requerido.")
+
+                # Actualizar los campos principales de la actividad
+                actividad.codigo_actividad = actividad_data['codigo_actividad']
+                actividad.fecha_salida = actividad_data['fecha_salida']
+                actividad.fecha_entrada = actividad_data['fecha_entrada']
+                actividad.tipo_arte_pesca = actividad_data['tipo_arte_pesca']
+                actividad.pesca_objetivo = actividad_data.get('pesca_objetivo', '')
+                actividad.puerto_salida_id = actividad_data.get('puerto_salida')
+                actividad.puerto_entrada_id = actividad_data.get('puerto_entrada')
+                actividad.embarcacion_id = actividad_data.get('embarcacion')
+                actividad.armador_id = actividad_data.get('armador')
+                actividad.capitan_id = actividad_data.get('capitan')
+                actividad.observador_id = actividad_data.get('observador')
+                actividad.ingresado_id = actividad_data.get('ingresado')
+                actividad.save()
+
+                # Eliminar los lances actuales para recrearlos con la nueva información
+                actividad.lance_set.all().delete()
+
+                # Obtener el tipo de arte de pesca en minúsculas para facilitar las comparaciones
+                tipo_arte_pesca = actividad.tipo_arte_pesca.lower()
+
+                # Procesar y recrear cada lance recibido
+                lances_data = actividad_data.get('lances', [])
+                for lance_data in lances_data:
+                    # Validar campos requeridos para cada lance
+                    lance_required_fields = [
+                        'codigo_lance', 'numero_lance', 'calado_fecha',
+                        'calado_hora', 'profundidad_suelo_marino', 'detalles'
+                    ]
+                    for field in lance_required_fields:
+                        if field not in lance_data:
+                            raise ValidationError(f"Campo '{field}' es requerido en lances.")
+
+                    # Crear el lance sin necesidad de verificar duplicados (ya se eliminó la info anterior)
+                    lance = models.Lance.objects.create(
+                        codigo_lance=lance_data['codigo_lance'],
+                        numero_lance=lance_data['numero_lance'],
+                        calado_fecha=lance_data['calado_fecha'],
+                        calado_hora=lance_data['calado_hora'],
+                        profundidad_suelo_marino=lance_data['profundidad_suelo_marino'],
+                        actividad=actividad
+                    )
+
+                    # Procesar la creación de coordenadas (si se envían)
+                    coordenadas = lance_data.get('coordenadas')
+                    if coordenadas:
+                        coordenadas_required_fields = [
+                            'latitud_ns', 'latitud_grados', 'latitud_minutos',
+                            'longitud_w', 'longitud_grados', 'longitud_minutos'
+                        ]
+                        for field in coordenadas_required_fields:
+                            if field not in coordenadas:
+                                raise ValidationError(f"Campo '{field}' es requerido en coordenadas.")
+                        models.Coordenadas.objects.create(
+                            codigo_lance=lance,
+                            latitud_ns=coordenadas['latitud_ns'],
+                            latitud_grados=coordenadas['latitud_grados'],
+                            latitud_minutos=coordenadas['latitud_minutos'],
+                            longitud_w=coordenadas['longitud_w'],
+                            longitud_grados=coordenadas['longitud_grados'],
+                            longitud_minutos=coordenadas['longitud_minutos']
+                        )
+
+                    # Procesar detalles según el tipo de arte de pesca
+                    detalles = lance_data.get('detalles', {})
+                    if tipo_arte_pesca == 'palangre':
+                        # Validar y crear detalles para palangre
+                        palangre_required_fields = [
+                            'Tipo_anzuelo', 'tamano_anzuelo',
+                            'cantidad_anzuelos', 'linea_madre_metros',
+                            'profundidad_anzuelo_metros', 'carnadas'
+                        ]
+                        for field in palangre_required_fields:
+                            if field not in detalles:
+                                raise ValidationError(f"Campo '{field}' es requerido en detalles de palangre.")
+
+                        lance_palangre = models.LancePalangre.objects.create(
+                            codigo_lance=lance,
+                            Tipo_anzuelo=detalles.get('Tipo_anzuelo', 'N'),
+                            tamano_anzuelo=detalles.get('tamano_anzuelo', 0.0),
+                            cantidad_anzuelos=detalles.get('cantidad_anzuelos', 0),
+                            linea_madre_metros=detalles.get('linea_madre_metros', 0.0),
+                            profundidad_anzuelo_metros=detalles.get('profundidad_anzuelo_metros', 0.0)
+                        )
+
+                        # Crear las carnadas asociadas
+                        carnadas_data = detalles.get('carnadas', [])
+                        for carnada_data in carnadas_data:
+                            if 'codigo_tipo_carnada' not in carnada_data or 'porcentaje_carnada' not in carnada_data:
+                                raise ValidationError("Campos 'codigo_tipo_carnada' y 'porcentaje_carnada' son requeridos en carnadas.")
+                            models.LancePalangreCarnadas.objects.create(
+                                codigo_lance_palangre=lance_palangre,
+                                codigo_tipo_carnada_id=carnada_data['codigo_tipo_carnada'],
+                                porcentaje_carnada=carnada_data['porcentaje_carnada']
+                            )
+
+                    elif tipo_arte_pesca == 'arrastre':
+                        # Validar y crear detalles para arrastre
+                        arrastre_required_fields = ['ted', 'copo', 'tunel', 'pico']
+                        for field in arrastre_required_fields:
+                            if field not in detalles:
+                                raise ValidationError(f"Campo '{field}' es requerido en detalles de arrastre.")
+
+                        models.LanceArrastre.objects.create(
+                            codigo_lance=lance,
+                            ted=detalles.get('ted', False),
+                            copo=detalles.get('copo', 0),
+                            tunel=detalles.get('tunel', 0),
+                            pico=detalles.get('pico', 0)
+                        )
+
+                    elif tipo_arte_pesca == 'cerco':
+                        # Validar y crear detalles para cerco
+                        cerco_required_fields = ['altura_red', 'longitud_red', 'malla_cabecero', 'malla_cuerpo']
+                        for field in cerco_required_fields:
+                            if field not in detalles:
+                                raise ValidationError(f"Campo '{field}' es requerido en detalles de cerco.")
+
+                        models.LanceCerco.objects.create(
+                            codigo_lance=lance,
+                            altura_red=detalles.get('altura_red', 0.0),
+                            longitud_red=detalles.get('longitud_red', 0.0),
+                            malla_cabecero=detalles.get('malla_cabecero', 0.0),
+                            malla_cuerpo=detalles.get('malla_cuerpo', 0.0)
+                        )
+
+                    else:
+                        raise ValidationError(f"Tipo de arte de pesca '{tipo_arte_pesca}' no reconocido.")
+
+                    # Procesar la creación de capturas, avistamientos e incidencias de manera similar...
+
+                return Response({"message": "Actividad editada exitosamente."}, status=status.HTTP_200_OK)
+
+        except ValidationError as ve:
+            return Response({"error": ve.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        except IntegrityError as ie:
+            if 'Duplicate entry' in str(ie):
+                return Response({"error": "Se detectó un valor duplicado en la edición. Verifica los campos únicos."},
+                                status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({"error": "Error de integridad de la base de datos: " + str(ie)},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        
 
 # CRUD para Tipo de Carnada
 class TipoCarnadaViewSet(SchemaMixin, viewsets.ModelViewSet):
@@ -490,6 +897,17 @@ class TipoCarnadaViewSet(SchemaMixin, viewsets.ModelViewSet):
                 return super().create(request, *args, **kwargs)
             except IntegrityError:
                 raise ValidationError({"nombre_tipo_carnada": "El nombre del tipo de carnada ya existe."})
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response(
+                {"detail": "No se puede eliminar este tipo de carnada porque está relacionado con otros registros."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 
 # CRUD para Puerto
 class PuertoViewSet(SchemaMixin, viewsets.ModelViewSet):
@@ -504,6 +922,17 @@ class PuertoViewSet(SchemaMixin, viewsets.ModelViewSet):
             return super().create(request, *args, **kwargs)
         except IntegrityError:
             raise ValidationError({"nombre_puerto": "El nombre del puerto ya existe."})
+        
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response(
+                {"detail": "No se puede eliminar este puerto porque está relacionado con otros registros."},
+                status=status.HTTP_400_BAD_REQUEST
+            )   
 
 # CRUD para Persona
 class PersonaViewSet(SchemaMixin, viewsets.ModelViewSet):
@@ -518,7 +947,16 @@ class PersonaViewSet(SchemaMixin, viewsets.ModelViewSet):
             return super().create(request, *args, **kwargs)
         except IntegrityError:
             raise ValidationError({"nombre_persona": "El nombre de la persona ya existe."})
-
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response(
+                {"detail": "No se puede eliminar esta persona porque está relacionada con otros registros."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 # CRUD para Embarcación
 class EmbarcacionViewSet(SchemaMixin, viewsets.ModelViewSet):
@@ -532,7 +970,16 @@ class EmbarcacionViewSet(SchemaMixin, viewsets.ModelViewSet):
             return super().create(request, *args, **kwargs)
         except IntegrityError:
             raise ValidationError({"nombre_embarcacion": "El nombre de la embarcación ya existe."})
-
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response(
+                {"detail": "No se puede eliminar esta embarcación porque está relacionada con otros registros."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 # CRUD para Especies
@@ -548,6 +995,17 @@ class EspecieViewSet(SchemaMixin, viewsets.ModelViewSet):
         except IntegrityError:
             raise ValidationError({"nombre_especie": "El nombre de la especie ya existe."})
 
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response(
+                {"detail": "No se puede eliminar esta especie porque está relacionada con otros registros."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 # CRUD para Coordenadas
 class CoordenadasViewSet(SchemaMixin, viewsets.ModelViewSet):
