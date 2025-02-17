@@ -1,16 +1,116 @@
-/* styles/MapWithHeatmap.css */
-.map-container {
+/* Contenedor principal del mapa (vista previa) */
+.map-preview-container {
   position: relative;
+  display: block;
+  margin-bottom: 10px;
+  height: 600px; /* Ajusta la altura a tu gusto */
+  width: 115%;
 }
 
-.error-message {
+/* Contenedor interno para asegurar que el mapa ocupe todo el espacio */
+.map-preview-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+}
+
+/* Estilo general del .leaflet-container */
+.leaflet-container {
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: #f0f0f0;
+}
+
+/* Overlay de información (por ejemplo, especie) */
+.map-overlay {
   position: absolute;
   top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 0, 0, 0.8);
-  color: white;
+  right: 10px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
   padding: 8px 12px;
   border-radius: 4px;
+  font-weight: bold;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  border: 1px solid #ddd;
+  color: #000;
+  max-width: 250px;
+}
+
+/* Botón para expandir el mapa, ahora en la esquina superior derecha */
+.expand-button {
+  position: absolute;
+  top: 10px; /* Cambiado de bottom a top */
+  right: 10px;
   z-index: 1000;
+  background: rgba(255, 255, 255, 0.8);
+  color: #6f6f6f;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* Modal que oscurece el fondo */
+.modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Contenido del modal (caja blanca centrada) */
+.modal-content {
+  position: relative;
+  width: 90%;
+  height: 90%;
+  background: #060606;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Botón para cerrar el modal */
+.modal-close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1001;
+  background: #191919;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+/* Contenedor interno del modal para el mapa */
+.map-modal-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Overlay de información específico del modal */
+.modal-overlay {
+  top: 10px;
+  right: 10px;
+  z-index: 1001;
+}
+
+/* Información adicional dentro del overlay */
+.map-overlay-info {
+  margin-top: 8px;
+  font-weight: normal;
+  font-size: 0.9em;
 }

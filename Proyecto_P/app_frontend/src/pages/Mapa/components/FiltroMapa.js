@@ -1,6 +1,5 @@
 // src/components/FiltroMapa.jsx
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Form,
   FormGroup,
@@ -16,6 +15,9 @@ import {
   FormFeedback,
   Alert,
 } from 'reactstrap';
+import './css/FiltroMapa.css'; // Archivo CSS para estilos
+
+const DEFAULT_RANGO = { min: 0, max: 100 };
 
 const FiltroMapa = ({
   filtros,
@@ -24,102 +26,104 @@ const FiltroMapa = ({
   especies,
   puertos,
   embarcaciones,
-  rangoProfundidad,
+  rangoProfundidad, // Se espera: { min: 0, max: 30 }
   años,
 }) => {
-  // Estado local para controlar qué sección del acordeón está abierta
+  const finalRango = rangoProfundidad || DEFAULT_RANGO;
   const [openAccordion, setOpenAccordion] = useState('1');
-
-  // Estado local para almacenar los cambios de los filtros antes de aplicar
   const [localFilters, setLocalFilters] = useState({ ...filtros });
-
-  // Estado para manejar errores de validación
   const [errors, setErrors] = useState({});
-
-  // Estado para mostrar mensajes de error al aplicar filtro
   const [submitError, setSubmitError] = useState('');
 
-  // Función para alternar la sección abierta del acordeón
-  const toggleAccordion = (id) => {
-    if (openAccordion === id) {
-      setOpenAccordion('');
-    } else {
-      setOpenAccordion(id);
-    }
-  };
-
-  // Función para resetear campos dependientes
-  const resetDependentFields = (field) => {
-    switch (field) {
-      case 'tipoFiltro':
-        return { taxaFiltro: '', especieFiltro: '' };
-      case 'taxaFiltro':
-        return { especieFiltro: '' };
-      case 'puerto':
-        return { embarcacion: '' };
-      default:
-        return {};
-    }
-  };
-
-  // Manejadores de eventos (guardan cambios en localFilters)
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setLocalFilters((prev) => ({
+  // Sincroniza los valores de profundidad con el rango final
+  useEffect(() => {
+    setLocalFilters(prev => ({
       ...prev,
-      [name]: value,
+      profundidadMin: String(finalRango.min),
+      profundidadMax: String(finalRango.max),
+    }));
+  }, [finalRango]);
+
+  const toggleAccordion = id => {
+    setOpenAccordion(openAccordion === id ? '' : id);
+  };
+
+  // Reinicia campos dependientes de acuerdo al campo modificado
+  const resetDependentFields = field => {
+    const mapping = {
+      tipoFiltro: { taxaFiltro: '', especieFiltro: '' },
+      taxaFiltro: { especieFiltro: '' },
+      puerto: { embarcacion: '' },
+    };
+    return mapping[field] || {};
+  };
+
+  const handleInputChange = e => {
+    const { name, value } = e.target;
+    let newValue = value;
+    if (name === 'profundidadMin' || name === 'profundidadMax') {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        if (name === 'profundidadMin' && numValue < finalRango.min) {
+          newValue = String(finalRango.min);
+        }
+        if (name === 'profundidadMax' && numValue > finalRango.max) {
+          newValue = String(finalRango.max);
+        }
+      }
+    }
+    setLocalFilters(prev => ({
+      ...prev,
+      [name]: newValue,
       ...resetDependentFields(name),
     }));
-    // Limpiar errores al modificar un campo
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      [name]: '',
-    }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
     setSubmitError('');
   };
 
-  // Validación de los datos del formulario
+  const handleBlur = e => {
+    const { name, value } = e.target;
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return;
+    if (name === 'profundidadMin' && numValue < finalRango.min) {
+      setLocalFilters(prev => ({ ...prev, [name]: String(finalRango.min) }));
+    }
+    if (name === 'profundidadMax' && numValue > finalRango.max) {
+      setLocalFilters(prev => ({ ...prev, [name]: String(finalRango.max) }));
+    }
+  };
+
   const validate = () => {
     const newErrors = {};
-
     const minVal = parseFloat(localFilters.profundidadMin);
     const maxVal = parseFloat(localFilters.profundidadMax);
 
-    // Validar profundidades si se ingresan
     if (localFilters.profundidadMin && isNaN(minVal)) {
       newErrors.profundidadMin = 'Debe ser un número válido.';
     }
-
     if (localFilters.profundidadMax && isNaN(maxVal)) {
       newErrors.profundidadMax = 'Debe ser un número válido.';
     }
-
     if (!isNaN(minVal) && !isNaN(maxVal)) {
       if (minVal > maxVal) {
         newErrors.profundidadMin = 'La profundidad mínima no puede ser mayor que la máxima.';
         newErrors.profundidadMax = 'La profundidad máxima no puede ser menor que la mínima.';
       }
-
-      if (minVal < rangoProfundidad.min || maxVal > rangoProfundidad.max) {
-        if (minVal < rangoProfundidad.min) {
-          newErrors.profundidadMin = `La profundidad mínima debe ser al menos ${rangoProfundidad.min} metros.`;
+      if (minVal < finalRango.min || maxVal > finalRango.max) {
+        if (minVal < finalRango.min) {
+          newErrors.profundidadMin = `La profundidad mínima debe ser al menos ${finalRango.min} m.`;
         }
-        if (maxVal > rangoProfundidad.max) {
-          newErrors.profundidadMax = `La profundidad máxima no puede exceder ${rangoProfundidad.max} metros.`;
+        if (maxVal > finalRango.max) {
+          newErrors.profundidadMax = `La profundidad máxima no puede exceder ${finalRango.max} m.`;
         }
       }
     }
-
     setErrors(newErrors);
-
-    // Retornar verdadero si no hay errores
     return Object.keys(newErrors).length === 0;
   };
 
-  // Lógica de validación al dar clic en "Aplicar Filtro"
-  const validarYAplicar = () => {
+  const aplicarFiltros = () => {
     if (validate()) {
-      // Si la validación pasa, actualizamos los filtros en el padre
       setFiltros(localFilters);
       setSubmitError('');
     } else {
@@ -127,215 +131,205 @@ const FiltroMapa = ({
     }
   };
 
-  // Limpiar errores al cambiar filtros externos
+  // Actualiza el estado local si cambian los filtros globales
   useEffect(() => {
     setLocalFilters({ ...filtros });
     setErrors({});
     setSubmitError('');
   }, [filtros]);
 
+  const filteredEspecies = useMemo(() => especies || [], [especies]);
+
   return (
-    <Form>
-      <Accordion open={openAccordion} toggle={toggleAccordion}>
-        {/* Sección 1: Tipo de Datos y Año */}
-        <AccordionItem>
-          <AccordionHeader targetId="1">Tipo de Interracion y Año</AccordionHeader>
-          <AccordionBody accordionId="1">
-            <FormGroup>
-              <Label for="tipo">Tipo de Interracion </Label>
-              <Input
-                type="select"
-                id="tipo"
-                name="tipoFiltro"
-                value={localFilters.tipoFiltro}
-                onChange={handleInputChange}
-              >
-                <option value="todos">Todos</option>
-                <option value="capturas">Capturas</option>
-                <option value="avistamientos">Avistamientos</option>
-                <option value="incidencias">Incidencias</option>
-              </Input>
-            </FormGroup>
+    <div className="filtro-mapa-container">
+      <Form>
+        <Accordion open={openAccordion} toggle={toggleAccordion}>
+          {/* Sección 1: Tipo de Interacción y Año */}
+          <AccordionItem>
+            <AccordionHeader targetId="1">Tipo de Interacción y Año</AccordionHeader>
+            <AccordionBody accordionId="1">
+              <FormGroup>
+                <Label for="tipoFiltro">Tipo de Interacción</Label>
+                <Input
+                  type="select"
+                  id="tipoFiltro"
+                  name="tipoFiltro"
+                  value={localFilters.tipoFiltro}
+                  onChange={handleInputChange}
+                >
+                  <option value="capturas">Capturas</option>
+                  <option value="avistamientos">Avistamientos</option>
+                  <option value="incidencias">Incidencias</option>
+                </Input>
+              </FormGroup>
+              <FormGroup>
+                <Label for="year">Año</Label>
+                <Input
+                  type="select"
+                  id="year"
+                  name="year"
+                  value={localFilters.year}
+                  onChange={handleInputChange}
+                >
+                  {años.map((year, index) => (
+                    <option key={index} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </Input>
+              </FormGroup>
+            </AccordionBody>
+          </AccordionItem>
 
-            <FormGroup>
-              <Label for="year">Año</Label>
-              <Input
-                type="select"
-                id="year"
-                name="year"
-                value={localFilters.year}
-                onChange={handleInputChange}
-              >
-                <option value="">Seleccione un año</option>
-                {años.map((year, index) => (
-                  <option key={index} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </Input>
-            </FormGroup>
-          </AccordionBody>
-        </AccordionItem>
+          {/* Sección 2: Puerto y Embarcación */}
+          <AccordionItem>
+            <AccordionHeader targetId="2">Puerto y Embarcación</AccordionHeader>
+            <AccordionBody accordionId="2">
+              <Row>
+                <Col md={6}>
+                  <FormGroup>
+                    <Label for="puerto">Puerto</Label>
+                    <Input
+                      type="select"
+                      id="puerto"
+                      name="puerto"
+                      value={localFilters.puerto}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Seleccione un puerto</option>
+                      {puertos.map((puerto, index) => (
+                        <option key={index} value={puerto}>
+                          {puerto}
+                        </option>
+                      ))}
+                    </Input>
+                  </FormGroup>
+                </Col>
+                <Col md={6}>
+                  <FormGroup>
+                    <Label for="embarcacion">Embarcación</Label>
+                    <Input
+                      type="select"
+                      id="embarcacion"
+                      name="embarcacion"
+                      value={localFilters.embarcacion}
+                      onChange={handleInputChange}
+                      disabled={!localFilters.puerto}
+                    >
+                      <option value="">Seleccione una embarcación</option>
+                      {embarcaciones.map((embarcacion, index) => (
+                        <option key={index} value={embarcacion.nombre_embarcacion}>
+                          {embarcacion.nombre_embarcacion}
+                        </option>
+                      ))}
+                    </Input>
+                  </FormGroup>
+                </Col>
+              </Row>
+            </AccordionBody>
+          </AccordionItem>
 
-        {/* Sección 2: Taxa y Especie */}
-        <AccordionItem>
-          <AccordionHeader targetId="2">Taxa y Especie</AccordionHeader>
-          <AccordionBody accordionId="2">
-            <Row>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="taxa">Taxa</Label>
-                  <Input
-                    type="select"
-                    id="taxa"
-                    name="taxaFiltro"
-                    value={localFilters.taxaFiltro}
-                    onChange={handleInputChange}
-                    disabled={localFilters.tipoFiltro === 'todos' || !localFilters.tipoFiltro}
-                  >
-                    <option value="">Seleccione un taxa</option>
-                    {taxas.map((taxa, index) => (
-                      <option key={index} value={taxa}>
-                        {taxa}
-                      </option>
-                    ))}
-                  </Input>
-                </FormGroup>
-              </Col>
+          {/* Sección 3: Taxa y Especie */}
+          <AccordionItem>
+            <AccordionHeader targetId="3">Taxa y Especie</AccordionHeader>
+            <AccordionBody accordionId="3">
+              <Row>
+                <Col md={6}>
+                  <FormGroup>
+                    <Label for="taxaFiltro">Taxa</Label>
+                    <Input
+                      type="select"
+                      id="taxaFiltro"
+                      name="taxaFiltro"
+                      value={localFilters.taxaFiltro}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Seleccione un taxa</option>
+                      {taxas.map((taxa, index) => (
+                        <option key={index} value={taxa}>
+                          {taxa}
+                        </option>
+                      ))}
+                    </Input>
+                  </FormGroup>
+                </Col>
+                <Col md={6}>
+                  <FormGroup>
+                    <Label for="especieFiltro">Especie</Label>
+                    <Input
+                      type="select"
+                      id="especieFiltro"
+                      name="especieFiltro"
+                      value={localFilters.especieFiltro}
+                      onChange={handleInputChange}
+                      disabled={!localFilters.taxaFiltro}
+                    >
+                      <option value="">Seleccione una especie</option>
+                      {filteredEspecies.map((item, index) => (
+                        <option key={index} value={item.nombre_comun || item}>
+                          {item.nombre_comun || item}
+                        </option>
+                      ))}
+                    </Input>
+                  </FormGroup>
+                </Col>
+              </Row>
+            </AccordionBody>
+          </AccordionItem>
 
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="especie">Especie</Label>
-                  <Input
-                    type="select"
-                    id="especie"
-                    name="especieFiltro"
-                    value={localFilters.especieFiltro}
-                    onChange={handleInputChange}
-                    disabled={!localFilters.taxaFiltro}
-                  >
-                    <option value="">Seleccione una especie</option>
-                    {especies.map((especie, index) => (
-                      <option key={index} value={especie}>
-                        {especie}
-                      </option>
-                    ))}
-                  </Input>
-                </FormGroup>
-              </Col>
-            </Row>
-          </AccordionBody>
-        </AccordionItem>
+          {/* Sección 4: Rango de Profundidad */}
+          <AccordionItem>
+            <AccordionHeader targetId="4">Rango de Profundidad</AccordionHeader>
+            <AccordionBody accordionId="4">
+              <Row>
+                <Col md={6}>
+                  <FormGroup>
+                    <Label for="profundidadMin">Profundidad Mínima (m)</Label>
+                    <Input
+                      type="number"
+                      id="profundidadMin"
+                      name="profundidadMin"
+                      value={localFilters.profundidadMin}
+                      onChange={handleInputChange}
+                      onBlur={handleBlur}
+                      placeholder={`Mínimo (${finalRango.min}m)`}
+                      invalid={!!errors.profundidadMin}
+                      min={finalRango.min}
+                      max={localFilters.profundidadMax || finalRango.max}
+                    />
+                    {errors.profundidadMin && <FormFeedback>{errors.profundidadMin}</FormFeedback>}
+                  </FormGroup>
+                </Col>
+                <Col md={6}>
+                  <FormGroup>
+                    <Label for="profundidadMax">Profundidad Máxima (m)</Label>
+                    <Input
+                      type="number"
+                      id="profundidadMax"
+                      name="profundidadMax"
+                      value={localFilters.profundidadMax}
+                      onChange={handleInputChange}
+                      onBlur={handleBlur}
+                      placeholder={`Máximo (${finalRango.max}m)`}
+                      invalid={!!errors.profundidadMax}
+                      min={localFilters.profundidadMin || finalRango.min}
+                      max={finalRango.max}
+                    />
+                    {errors.profundidadMax && <FormFeedback>{errors.profundidadMax}</FormFeedback>}
+                  </FormGroup>
+                </Col>
+              </Row>
+            </AccordionBody>
+          </AccordionItem>
+        </Accordion>
 
-        {/* Sección 3: Puerto y Embarcación */}
-        <AccordionItem>
-          <AccordionHeader targetId="3">Puerto y Embarcación</AccordionHeader>
-          <AccordionBody accordionId="3">
-            <Row>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="puerto">Puerto</Label>
-                  <Input
-                    type="select"
-                    id="puerto"
-                    name="puerto"
-                    value={localFilters.puerto}
-                    onChange={handleInputChange}
-                  >
-                    <option value="">Seleccione un puerto</option>
-                    {puertos.map((puerto, index) => (
-                      <option key={index} value={puerto}>
-                        {puerto}
-                      </option>
-                    ))}
-                  </Input>
-                </FormGroup>
-              </Col>
+        {submitError && <Alert color="danger" className="mt-3">{submitError}</Alert>}
 
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="embarcacion">Embarcación</Label>
-                  <Input
-                    type="select"
-                    id="embarcacion"
-                    name="embarcacion"
-                    value={localFilters.embarcacion}
-                    onChange={handleInputChange}
-                    disabled={!localFilters.puerto}
-                  >
-                    <option value="">Seleccione una embarcación</option>
-                    {embarcaciones.map((embarcacion, index) => (
-                      <option key={index} value={embarcacion.nombre_embarcacion}>
-                        {embarcacion.nombre_embarcacion}
-                      </option>
-                    ))}
-                  </Input>
-                </FormGroup>
-              </Col>
-            </Row>
-          </AccordionBody>
-        </AccordionItem>
-
-        {/* Sección 4: Rango de Profundidad */}
-        <AccordionItem>
-          <AccordionHeader targetId="4">Rango de Profundidad</AccordionHeader>
-          <AccordionBody accordionId="4">
-            <Row>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="profundidadMin">Profundidad Mínima (m)</Label>
-                  <Input
-                    type="number"
-                    id="profundidadMin"
-                    name="profundidadMin"
-                    value={localFilters.profundidadMin}
-                    onChange={handleInputChange}
-                    placeholder={`Mínimo (${rangoProfundidad.min_profundidad}m)`}
-                    invalid={!!errors.profundidadMin}
-                    min={rangoProfundidad.min_profundidad} // Establecer límite mínimo
-                    max={localFilters.profundidadMax || rangoProfundidad.max_profundidad } // Establecer un límite máximo más alto
-   
-                  />
-                  {errors.profundidadMin && <FormFeedback>{errors.profundidadMin}</FormFeedback>}
-                </FormGroup>
-              </Col>
-
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="profundidadMax">Profundidad Máxima (m)</Label>
-                  <Input
-                    type="number"
-                    id="profundidadMax"
-                    name="profundidadMax"
-                    value={localFilters.profundidadMax}
-                    onChange={handleInputChange}
-                    placeholder={`Máximo (${rangoProfundidad.max_profundidad}m)`}
-                    invalid={!!errors.profundidadMax}
-                    min={localFilters.profundidadMin || rangoProfundidad.min_profundidad} // Evitar ser menor que profundidad mínima
-                    max={rangoProfundidad.max_profundidad } // Establecer un límite máximo más alto
-  
-                  />
-                  {errors.profundidadMax && <FormFeedback>{errors.profundidadMax}</FormFeedback>}
-                </FormGroup>
-              </Col>
-            </Row>
-          </AccordionBody>
-        </AccordionItem>
-      </Accordion>
-
-      {/* Mostrar mensaje de error al aplicar filtro */}
-      {submitError && <Alert color="danger" className="mt-3">{submitError}</Alert>}
-
-      {/* Botón para Aplicar los Filtros */}
-      <Button
-        color="primary"
-        block
-        className="mt-3"
-        onClick={validarYAplicar}
-      >
-        Aplicar Filtro
-      </Button>
-    </Form>
+        <Button color="primary" block className="mt-3" onClick={aplicarFiltros}>
+          Aplicar Filtro
+        </Button>
+      </Form>
+    </div>
   );
 };
 

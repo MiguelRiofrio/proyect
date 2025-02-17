@@ -1,6 +1,4 @@
-// src/components/Mapa.jsx
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Container,
   Card,
@@ -11,19 +9,30 @@ import {
   Row,
   Col,
   Button,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from 'reactstrap';
-import { FaFilter, FaSyncAlt } from 'react-icons/fa';
+import { FaFilter, FaSyncAlt, FaFileExport } from 'react-icons/fa';
 import 'leaflet/dist/leaflet.css';
-import api from '../../routes/api';
-import MapWithMarkers from './components/MapWithMarkers';
+
+import MapWithHeatmap from './components/Contenido_Mapa';
 import FiltroMapa from './components/FiltroMapa';
-import './css/Mapa.css'; // Archivo CSS para estilos personalizados
+import useFetchMapData from './components/useFetchMapData';
+import ExportableReport from './components/ExportableReport';
+
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
+import './css/Mapa.css'; // Asegúrate de que la ruta sea la correcta
 
 const Mapa = () => {
-  const [datos, setDatos] = useState({ capturas: [], avistamientos: [], incidencias: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  /*** Configuración inicial del mapa ***/
+  const defaultCenter = [12, -85];
+  const defaultZoom = 5.5;
 
+  /*** Estados y manejo de filtros ***/
   const [filtros, setFiltros] = useState({
     tipoFiltro: 'todos',
     taxaFiltro: '',
@@ -34,90 +43,89 @@ const Mapa = () => {
     embarcacion: '',
     year: '',
   });
-
-  const [filtrosDisponibles, setFiltrosDisponibles] = useState({
-    taxas: [],
-    especies: [],
-    puertos: [],
-    embarcaciones: [],
-    rangoProfundidad: { min: 0, max: 100 },
-    años: [],
-  });
-
   const [isFilterOpen, setIsFilterOpen] = useState(true);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
 
-  // Obtener datos desde la API
-  const fetchData = async () => {
+  /*** Consulta de datos del mapa ***/
+  const { datos, filtrosDisponibles, loading, error, refetch } = useFetchMapData(filtros);
+  console.log("Filtros Disponibles:", filtrosDisponibles);
+
+  /*** Combina los datos de distintas fuentes ***/
+  const combinedData = useMemo(() => {
+    return [
+      ...(datos.capturas || []),
+      ...(datos.avistamientos || []),
+      ...(datos.incidencias || []),
+    ];
+  }, [datos]);
+
+  /*** Resumen de filtros para el informe exportable ***/
+  const resumenFiltros = `Filtros Aplicados:
+- Tipo de Interacción: ${filtros.tipoFiltro}
+- Taxa: ${filtros.taxFiltro || "Ninguno"}
+- Especie: ${filtros.especieFiltro || "Ninguno"}
+- Puerto: ${filtros.puerto || "Ninguno"}
+- Embarcación: ${filtros.embarcacion || "Ninguno"}
+- Año: ${filtros.year || "Ninguno"}
+- Rango de Profundidad: ${filtros.profundidadMin || (filtrosDisponibles.rangoProfundidad?.min || 0)} m a ${filtros.profundidadMax || (filtrosDisponibles.rangoProfundidad?.max || 100)} m`;
+
+  /*** Funciones de manejo de la interfaz ***/
+  const toggleFilter = () => setIsFilterOpen(prev => !prev);
+  const handleReload = () => refetch();
+
+  /*** Exportación del informe a PDF ***/
+  const exportRef = useRef();
+
+  const handleExport = async () => {
+    if (!exportRef.current) return;
     try {
-      setLoading(true);
-      setError(null);
-
-      // Construcción de parámetros de consulta
-      const params = {
-        tipo: filtros.tipoFiltro,
-        taxa: filtros.taxaFiltro || undefined,
-        especie: filtros.especieFiltro || undefined,
-        rango_profundidad_min: filtros.profundidadMin || undefined,
-        rango_profundidad_max: filtros.profundidadMax || undefined,
-        puerto: filtros.puerto || undefined,
-        embarcacion: filtros.embarcacion || undefined,
-        year: filtros.year || undefined,
-      };
-
-      // Obtener datos de coordenadas y filtros disponibles
-      const [coordenadasResponse, filtrosResponse] = await Promise.all([
-        api.get(`/localizacion_especies/`, { params }),
-        api.get(`/filtros-coordenadas/`, { params }),
-      ]);
-
-      console.log('Datos obtenidos:', coordenadasResponse.data);
-      console.log('Filtros disponibles:', filtrosResponse.data);
-
-      setDatos(coordenadasResponse.data || { capturas: [], avistamientos: [], incidencias: [] });
-
-      setFiltrosDisponibles({
-        taxas: filtrosResponse.data.taxas || [],
-        especies: filtrosResponse.data.especies || [],
-        puertos: filtrosResponse.data.puertos || [],
-        embarcaciones: filtrosResponse.data.embarcaciones || [],
-        rangoProfundidad: filtrosResponse.data.rango_profundidad || { min: 0, max: 100 },
-        años: filtrosResponse.data.años || [],
-      });
+      const canvas = await html2canvas(exportRef.current, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const imgProps = pdf.getImageProperties(imgData);
+      const imgHeight = (pdfWidth * imgProps.height) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
+      pdf.save('informe.pdf');
     } catch (err) {
-      setError('Error al cargar los datos del mapa.');
-      console.error('Error al cargar los datos:', err);
-    } finally {
-      setLoading(false);
+      console.error("Error al exportar el informe", err);
     }
   };
 
-  // Llamar a fetchData cuando los filtros cambien
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtros]);
-
-  const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
-
-  const handleReload = () => {
-    fetchData();
+  const confirmExport = () => setShowExportConfirm(true);
+  const handleConfirmExport = () => {
+    handleExport();
+    setShowExportConfirm(false);
   };
+  const handleCancelExport = () => setShowExportConfirm(false);
 
   return (
-    <Container fluid className="mt-4 mapa-container">
-      <Row className="justify-content-center">
-        <Col lg={12}>
-          <Card className="shadow">
-            <CardHeader className="d-flex justify-content-between align-items-center bg-primary text-white">
+    <Container fluid className="mt-3 mapa-container">
+      {/* Tarjeta principal */}
+      <Row className="justify-content-center no-print">
+        {/* Usamos lg={8} para que el card sea más pequeño y centrado */}
+        <Col lg={9}>
+          <Card className="shadow custom-card">
+            <CardHeader className="d-flex justify-content-between align-items-center custom-card-header no-print">
               <h5 className="mb-0">Mapa de Actividades Pesqueras</h5>
-              <Button color="light" onClick={handleReload} outline>
-                <FaSyncAlt /> Recargar
-              </Button>
+              <div>
+                <Button color="light" onClick={handleReload} outline className="mr-2">
+                  <FaSyncAlt /> Recargar
+                </Button>
+                <Button color="secondary" onClick={confirmExport} outline className="mr-2">
+                  <FaFileExport /> Exportar Informe
+                </Button>
+              </div>
             </CardHeader>
-            <CardBody>
-              {error && <Alert color="danger" className="text-center">{error}</Alert>}
+            <CardBody className="custom-card-body">
+              {error && (
+                <Alert color="danger" fade={false} className="text-center no-print">
+                  {error}
+                </Alert>
+              )}
 
-              <Row className="mb-3">
+              {/* Botón para mostrar u ocultar filtros */}
+              <Row className="mb-3 no-print">
                 <Col xs="12" className="d-flex justify-content-between align-items-center">
                   <Button color="secondary" onClick={toggleFilter} outline>
                     <FaFilter /> {isFilterOpen ? 'Ocultar Filtros' : 'Mostrar Filtros'}
@@ -125,11 +133,11 @@ const Mapa = () => {
                 </Col>
               </Row>
 
-              <Row>
-                {/* Columna de Filtros */}
-                {isFilterOpen && (
-                  <Col md={3} className="mb-3">
-                    <h6 className="mb-0">Filtros</h6>
+              {isFilterOpen ? (
+                <Row className="equal-divisions">
+                  {/* Panel de filtros: Se asigna lg={4} */}
+                  <Col xs={12} md={4} lg={4} className="filter-column">
+                    <h6 className="mb-3">Filtros</h6>
                     <FiltroMapa
                       filtros={filtros}
                       setFiltros={setFiltros}
@@ -137,32 +145,73 @@ const Mapa = () => {
                       especies={filtrosDisponibles.especies}
                       puertos={filtrosDisponibles.puertos}
                       embarcaciones={filtrosDisponibles.embarcaciones}
-                      rangoProfundidad={filtrosDisponibles.rangoProfundidad}
+                      rangoProfundidad={filtrosDisponibles.rangoProfundidad || { min: 0, max: 100 }}
                       años={filtrosDisponibles.años}
                     />
                   </Col>
-                )}
-
-                {/* Columna del Mapa */}
-                <Col md={isFilterOpen ? 9 : 12} className="mapa-responsive">
-                  {loading ? (
-                    <div className="text-center my-5">
-                      <Spinner color="primary" size="lg" />
-                      <p className="mt-3">Cargando datos del mapa...</p>
-                    </div>
-                  ) : (
-                    <MapWithMarkers
-                      datos={[...datos.capturas, ...datos.avistamientos, ...datos.incidencias]}
-                      center={[-0.5, -80]}
-                      zoom={6}
-                    />
-                  )}
-                </Col>
-              </Row>
+                  {/* Mapa principal: Se asigna lg={8} */}
+                  <Col xs={12} md={8} lg={8} className="map-column">
+                    {loading ? (
+                      <div className="text-center my-5">
+                        <Spinner color="primary" />
+                        <p className="mt-3">Cargando datos del mapa...</p>
+                      </div>
+                    ) : (
+                      <MapWithHeatmap
+                        datos={combinedData}
+                        center={defaultCenter}
+                        zoom={defaultZoom}
+                      />
+                    )}
+                  </Col>
+                </Row>
+              ) : (
+                <Row>
+                  <Col xs={12} className="mapa-responsive">
+                    {loading ? (
+                      <div className="text-center my-5">
+                        <Spinner color="primary" />
+                        <p className="mt-3">Cargando datos del mapa...</p>
+                      </div>
+                    ) : (
+                      <MapWithHeatmap
+                        datos={combinedData}
+                        center={defaultCenter}
+                        zoom={defaultZoom}
+                      />
+                    )}
+                  </Col>
+                </Row>
+              )}
             </CardBody>
           </Card>
         </Col>
       </Row>
+
+      {/* Modal de confirmación para exportar informe */}
+      <Modal isOpen={showExportConfirm} toggle={handleCancelExport}>
+        <ModalHeader toggle={handleCancelExport}>Confirmar Exportación</ModalHeader>
+        <ModalBody>¿Desea exportar el informe?</ModalBody>
+        <ModalFooter>
+          <Button color="primary" onClick={handleConfirmExport}>
+            Confirmar
+          </Button>
+          <Button color="secondary" onClick={handleCancelExport}>
+            Cancelar
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Contenedor oculto para exportar informe en PDF */}
+      <div ref={exportRef} className="export-container" style={{ display: 'none' }}>
+        <ExportableReport
+          combinedData={combinedData}
+          center={defaultCenter}
+          zoom={defaultZoom}
+          species={filtros.especieFiltro}
+          resumenFiltros={resumenFiltros}
+        />
+      </div>
     </Container>
   );
 };

@@ -1,5 +1,8 @@
 {
   "dependencies": {
+    "d3-array": "^3.2.4",
+    "d3-contour": "^4.0.2",
+    "d3-scale": "^4.0.2",
     "leaflet.heat": "^0.2.0"
   }
 }

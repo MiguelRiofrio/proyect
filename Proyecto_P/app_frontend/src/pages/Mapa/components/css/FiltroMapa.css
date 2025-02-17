@@ -1,12 +1,7 @@
-/* components/css/FiltroMapa.css */
-
-.filtro-mapa-card {
-    margin-bottom: 20px;
-  }
-  
-  @media (max-width: 576px) {
-    .filtro-mapa-card {
-      margin-bottom: 10px;
-    }
-  }
-  
+.filtro-mapa-container {
+  height: 600px;
+  padding: 1rem;
+  background-color: #f8f9fa; /* Color de fondo claro */
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

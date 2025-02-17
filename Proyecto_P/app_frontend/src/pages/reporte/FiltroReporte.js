@@ -2,42 +2,28 @@ import React from 'react';
 import { TextField, Autocomplete, Button, Box } from '@mui/material';
 
 const FiltroReporte = ({ filtros, setFiltros, aplicarFiltros }) => {
+  // Manejador para los TextField (profundidades)
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Se actualiza el estado, si es necesario se puede convertir el valor a número
     setFiltros((prev) => ({ ...prev, [name]: value }));
   };
 
+
+  const mesesSeleccionados =
+    filtros.mesesDisponibles?.filter((mes) => filtros.mes_captura.includes(mes.valor)) || [];
+
   return (
     <Box display="flex" flexDirection="column" gap={2} width="100%">
-      
+      {/* Campo para Profundidad Mínima */}
       <TextField
         label="Profundidad Mínima"
         name="profundidad_min"
         type="number"
         value={
-          filtros.profundidad_min !== '' 
-            ? filtros.profundidad_min 
-            : filtros.profundidadMinima !== null 
-              ? filtros.profundidadMinima 
-              : ''
-        }
-        onChange={handleChange}
-        fullWidth
-        inputProps={{
-          min: filtros.profundidadMinima || 0,
-          max: filtros.profundidadMaxima || 100,
-        }}
-      />
-      <TextField
-        label="Profundidad Máxima"
-        name="profundidad_max"
-        type="number"
-        value={
-          filtros.profundidad_max !== '' 
-            ? filtros.profundidad_max 
-            : filtros.profundidadMaxima !== null 
-              ? filtros.profundidadMaxima 
-              : ''
+          filtros.profundidad_min !== ''
+            ? filtros.profundidad_min
+            : filtros.profundidadMinima // Se espera que este valor venga del endpoint de filtros
         }
         onChange={handleChange}
         fullWidth
@@ -47,6 +33,25 @@ const FiltroReporte = ({ filtros, setFiltros, aplicarFiltros }) => {
         }}
       />
 
+      {/* Campo para Profundidad Máxima */}
+      <TextField
+        label="Profundidad Máxima"
+        name="profundidad_max"
+        type="number"
+        value={
+          filtros.profundidad_max !== ''
+            ? filtros.profundidad_max
+            : filtros.profundidadMaxima // Se espera que este valor venga del endpoint de filtros
+        }
+        onChange={handleChange}
+        fullWidth
+        inputProps={{
+          min: filtros.profundidadMinima || 0,
+          max: filtros.profundidadMaxima || 100,
+        }}
+      />
+
+      {/* Autocomplete para Embarcación */}
       <Autocomplete
         options={['Todas', ...(filtros.embarcaciones || [])]}
         value={filtros.embarcacion || 'Todas'}
@@ -57,18 +62,22 @@ const FiltroReporte = ({ filtros, setFiltros, aplicarFiltros }) => {
         fullWidth
       />
 
+      {/* Autocomplete para seleccionar múltiples meses */}
       <Autocomplete
         multiple
         options={filtros.mesesDisponibles || []}
-        getOptionLabel={(option) => option}
-        value={filtros.mes_captura.length > 0 ? filtros.mes_captura : []}
+        getOptionLabel={(option) => option.nombre}
+        value={mesesSeleccionados}
         onChange={(event, newValue) => {
-          setFiltros((prev) => ({ ...prev, mes_captura: newValue }));
+          // Extrae el valor numérico de cada mes seleccionado
+          const mesesSeleccionados = newValue.map((item) => item.valor);
+          setFiltros((prev) => ({ ...prev, mes_captura: mesesSeleccionados }));
         }}
         renderInput={(params) => <TextField {...params} label="Meses disponibles" />}
         fullWidth
       />
 
+      {/* Autocomplete para Año de Captura */}
       <Autocomplete
         options={filtros.anosDisponibles || []}
         getOptionLabel={(option) => option.toString()}

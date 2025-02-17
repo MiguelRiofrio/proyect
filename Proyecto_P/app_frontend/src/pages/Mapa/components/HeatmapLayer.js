@@ -8,39 +8,51 @@ const HeatmapLayer = ({ points }) => {
   const map = useMap();
 
   useEffect(() => {
-    if (!map) return;
+    // Verificar que el mapa y los puntos existen
+    if (!map || !points?.length) return;
 
-    // Transformamos cada punto a [lat, lng, intensidad]
-    // Si no tienes una intensidad específica, pon 1 por defecto.
-    const heatPoints = points.map((p) => ([
+    // Asegurarse de que el contenedor del mapa tenga dimensiones válidas
+    const size = map.getSize();
+    if (size.x === 0 || size.y === 0) {
+      console.warn("El contenedor del mapa tiene dimensiones 0; se retrasa la creación de la capa heatmap.");
+      return;
+    }
+
+    // Convertir los puntos al formato requerido por leaflet.heat: [lat, lng, intensidad]
+    const heatPoints = points.map(p => ([
       parseFloat(p.latitud),
       parseFloat(p.longitud),
-      1 // o la intensidad que quieras asignar
+      1  // Intensidad por defecto; se puede ajustar según la relevancia de cada punto
     ]));
 
-    // Creamos la capa de calor
-    const heatLayer = L.heatLayer(heatPoints, {
-      radius: 35,  // Aumenta el radio para hacer los puntos más visibles
-      blur: 20,    // Aumenta el desenfoque para suavizar la visualización
-      maxZoom: 15, // Reduce el zoom máximo para que la capa sea más prominente
-      minOpacity: 0.5, // Ajusta la opacidad mínima para que siempre sea visible
+    // Opciones de configuración para la capa heatmap, mejorando la visualización
+    const heatLayerOptions = {
+      radius: 35,      // Radio de influencia de cada punto en píxeles
+      blur: 20,        // Cantidad de desenfoque para suavizar la transición de colores
+      maxZoom: 15,     // Zoom máximo en el que se aplicará el efecto heatmap
+      minOpacity: 0.5, // Opacidad mínima de la capa
+      // Gradiente de colores para lograr una transición visual más suave
       gradient: {
-        0.2: 'blue',
-        0.4: 'lime',
-        0.6: 'yellow',
-        1.0: 'red'
-      }  // Cambia el gradiente para un mayor contraste visual
-    });
-    // Agregamos la capa al mapa
-    heatLayer.addTo(map);
+        0.0: 'blue',   // Menor densidad
+        0.25: 'cyan',
+        0.5: 'lime',
+        0.75: 'yellow',
+        1.0: 'red'     // Mayor densidad
+      }
+    };
 
-    // Quitamos la capa cuando se desmonte el componente o cambien los puntos
+    // Crear la capa heatmap y agregarla al mapa
+    const heatLayer = L.heatLayer(heatPoints, heatLayerOptions).addTo(map);
+
+    // Limpieza: se elimina la capa heatmap al desmontar o actualizar el componente
     return () => {
-      map.removeLayer(heatLayer);
+      if (map && heatLayer) {
+        map.removeLayer(heatLayer);
+      }
     };
   }, [map, points]);
 
-  return null; // No renderiza nada directamente
+  return null;
 };
 
 export default HeatmapLayer;

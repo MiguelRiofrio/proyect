@@ -1,0 +1,30 @@
+/* src/components/css/HeatmapLegend.css */
+.heatmap-legend {
+  position: absolute;
+  bottom: 10px;
+  left: 10px; /* Cambiado de right a left */
+  background: rgba(255, 255, 255, 0.8);
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.heatmap-legend h4 {
+  margin: 0 0 5px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.gradient-bar {
+  width: 150px; /* Ajusta el ancho si es necesario */
+  height: 10px;
+  background: linear-gradient(to right, blue, cyan, lime, yellow, red);
+  margin-bottom: 5px;
+}
+
+.legend-labels {
+  display: flex;
+  justify-content: space-between;
+}

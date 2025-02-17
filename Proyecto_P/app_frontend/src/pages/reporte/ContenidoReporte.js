@@ -1,154 +1,202 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
-  Divider,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Grid
+  Divider,
 } from '@mui/material';
-import './ContenidoReporte.css';
+import html2canvas from 'html2canvas';
+import { generarTextoResumen } from './components/ResumenReporte'; // Asegúrate de que la ruta sea correcta
+import DetalleTabla from './components/DetalleTabla'; // Ajusta la ruta según tu estructura
 
 const ContenidoReporte = ({ reporte, filtros }) => {
   const reporteRef = useRef();
 
-  const handlePrint = () => {
+  // Llamadas a hooks que dependen de `reporte` deben realizarse siempre.
+  const monthNames = {
+    "1": "Enero", "2": "Febrero", "3": "Marzo", "4": "Abril",
+    "5": "Mayo", "6": "Junio", "7": "Julio", "8": "Agosto",
+    "9": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre",
+  };
+
+  const mesMaxAvistamientos = useMemo(() => {
+    const distribucion = reporte && reporte.distribucion_avistamientos_por_mes
+      ? reporte.distribucion_avistamientos_por_mes
+      : [];
+    return distribucion.reduce((prev, curr) =>
+      (curr.total_avistamientos > (prev.total_avistamientos || 0) ? curr : prev), {});
+  }, [reporte]);
+
+  const topEmbarcacion = useMemo(() => {
+    const datos = reporte && reporte.esfuerzo_por_embarcacion
+      ? reporte.esfuerzo_por_embarcacion
+      : [];
+    return datos.length > 0
+      ? datos.reduce((prev, curr) =>
+          (curr.total_lances > prev.total_lances ? curr : prev), { total_lances: 0 })
+      : null;
+  }, [reporte]);
+
+  if (!reporte) {
+    return (
+      <Typography variant="h6" align="center">
+        Cargando reporte...
+      </Typography>
+    );
+  }
+
+  const filtrosObj = reporte.filtros_aplicados || {};
+  const resumen = reporte.resumen_general || {};
+  const detalleAdicional = reporte.detalle_adicional || {};
+
+  const topCapturas = reporte.capturas_por_especie && reporte.capturas_por_especie.length > 0
+    ? reporte.capturas_por_especie.slice(0, 3).map(item => item.especie__nombre_cientifico).join(', ')
+    : 'No disponibles';
+  const topAvistamientos = reporte.avistamientos_por_especie && reporte.avistamientos_por_especie.length > 0
+    ? reporte.avistamientos_por_especie.slice(0, 3).map(item => item.especie__nombre_cientifico).join(', ')
+    : 'No disponibles';
+  const topIncidencias = reporte.incidencias_por_especie && reporte.incidencias_por_especie.length > 0
+    ? reporte.incidencias_por_especie.slice(0, 3).map(item => item.especie__nombre_cientifico).join(', ')
+    : 'No disponibles';
+
+  const textoResumenCompleto = generarTextoResumen({
+    filtrosObj,
+    resumen,
+    detalleAdicional,
+    topCapturas,
+    topAvistamientos,
+    topIncidencias,
+    tendenciaLances: reporte.tendencia_lances, // Se pasa la lista completa
+    mesMaxAvistamientos,
+    topEmbarcacion,
+    monthNames,
+  });
+
+  const handlePrint = async () => {
     if (reporteRef.current) {
-      const printWindow = window.open('', '_blank');
-      const content = reporteRef.current.innerHTML;
-
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Reporte de Estadísticas</title>
-            <style>
-              body { font-family: 'Roboto', Arial, sans-serif; margin: 20px; color: #333; }
-              h1, h2, h3 { color: #2c3e50; margin-bottom: 10px; }
-              .reporte-container { width: 90%; margin: auto; }
-              table { width: 100%; border-collapse: collapse; }
-              th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-              th { background-color: #f4f4f4; font-weight: bold; }
-            </style>
-          </head>
-          <body>
-            ${content}
-          </body>
-        </html>
-      `);
-
-      printWindow.document.close();
-      printWindow.print();
+      try {
+        const canvas = await html2canvas(reporteRef.current, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/png');
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Reporte Pesquero</title>
+              <style>
+                body { font-family: 'Roboto', Arial, sans-serif; padding: 20px; text-align: center; }
+                img { max-width: 100%; height: auto; }
+              </style>
+            </head>
+            <body>
+              <h1>Reporte Pesquero</h1>
+              <p>Fecha de generación: ${new Date().toLocaleDateString()}</p>
+              <img src="${imgData}" />
+              <script>window.onload = function () { window.print(); }</script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+      } catch (error) {
+        console.error('Error al generar la impresión:', error);
+      }
     }
   };
 
-  if (!reporte) {
-    return <Typography variant="h6" align="center">Seleccione "Aplicar Filtros" para generar el reporte...</Typography>;
-  }
-
-  const resumenGeneral = reporte?.resumen_general || {};
-
   return (
-    <Box ref={reporteRef} className="reporte-container" sx={{ padding: 4, backgroundColor: '#f4f6f8', borderRadius: 2 }}>
-      <Typography variant="h4" gutterBottom align="center" color="primary">
-        Reporte Detallado de Actividades Pesqueras
-      </Typography>
+    <Box sx={{ padding: 4, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+      <Box ref={reporteRef}>
+        {/* Encabezado */}
+        <Box
+          sx={{
+            backgroundColor: 'primary.main',
+            color: 'white',
+            padding: 3,
+            borderRadius: 2,
+            mb: 4,
+            textAlign: 'center',
+          }}
+        >
+          <Typography variant="h3" component="h1" gutterBottom>
+            Reporte Pesquero
+          </Typography>
+          <Typography variant="h6">
+            Generado el: {new Date().toLocaleDateString()}
+          </Typography>
+        </Box>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h6" color="secondary" gutterBottom>Resumen General</Typography>
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell><strong>Total de Especies:</strong></TableCell>
-                      <TableCell>{resumenGeneral.total_especies ?? 'N/A'}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell><strong>Total de Capturas:</strong></TableCell>
-                      <TableCell>{resumenGeneral.total_capturas ?? 'N/A'}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell><strong>Total de Avistamientos:</strong></TableCell>
-                      <TableCell>{resumenGeneral.total_avistamientos ?? 'N/A'}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h6" color="secondary" gutterBottom>Profundidades e Incidencias</Typography>
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell><strong>Total de Incidencias:</strong></TableCell>
-                      <TableCell>{resumenGeneral.total_incidencias ?? 'N/A'}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell><strong>Profundidad Máxima:</strong></TableCell>
-                      <TableCell>{resumenGeneral.profundidad_maxima ?? 'N/A'} m</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell><strong>Profundidad Mínima:</strong></TableCell>
-                      <TableCell>{resumenGeneral.profundidad_minima ?? 'N/A'} m</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Divider sx={{ my: 4 }} />
-
-      {reporte?.capturas_mas_comunes?.length > 0 && (
-        <Card sx={{ boxShadow: 3, borderRadius: 2, marginTop: 4 }}>
+        {/* Resumen Unificado */}
+        <Card sx={{ mb: 4, boxShadow: 3, borderRadius: 2 }}>
           <CardContent>
             <Typography variant="h5" color="primary" gutterBottom>
-              Especies Más Capturadas
+              Resumen del Reporte
             </Typography>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead sx={{ backgroundColor: '#1976d2' }}>
-                  <TableRow>
-                    <TableCell sx={{ color: '#fff' }}><strong>Especie</strong></TableCell>
-                    <TableCell sx={{ color: '#fff' }}><strong>Total Capturas</strong></TableCell>
-                    <TableCell sx={{ color: '#fff' }}><strong>Peso Total (kg)</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {reporte.capturas_mas_comunes.map((captura, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{captura.especie__nombre_cientifico || 'N/A'}</TableCell>
-                      <TableCell>{captura.total_capturado ?? 0}</TableCell>
-                      <TableCell>{captura.total_peso ?? 0}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <Typography
+              variant="body1"
+              sx={{ whiteSpace: 'pre-line', textAlign: 'justify' }}
+              dangerouslySetInnerHTML={{ __html: textoResumenCompleto }}
+            />
           </CardContent>
         </Card>
-      )}
 
-      <Box textAlign="center" marginTop={4}>
-        <Button onClick={handlePrint} variant="contained" color="primary">
+        {/* Sección de Tablas de Detalle */}
+        <Card sx={{ mb: 4, boxShadow: 3, borderRadius: 2 }}>
+          <CardContent>
+            <Typography variant="h5" color="primary" gutterBottom>
+              Tablas de Detalle
+            </Typography>
+
+            {/* Capturas por Especie */}
+            <DetalleTabla
+              title="Capturas por Especie"
+              data={reporte.capturas_mas_comunes}
+              columns={[
+                { field: 'especie__nombre_cientifico' },
+                { field: 'total_capturado', align: 'right' },
+                { field: 'total_peso', align: 'right' },
+                { field: 'max_peso', align: 'right', label: 'Máx' },
+                { field: 'min_peso', align: 'right', label: 'Mín' },
+              ]}
+            />
+
+            {/* Avistamientos por Especie */}
+            <DetalleTabla
+              title="Avistamientos por Especie"
+              data={reporte.avistamientos_mas_comunes}
+              columns={[
+                { field: 'especie__nombre_cientifico' },
+                { field: 'total_avistamientos', align: 'right' },
+              ]}
+            />
+
+            {/* Incidencias por Tipo */}
+            <DetalleTabla
+              title="Incidencias por Tipo (por Especie)"
+              data={reporte.incidencias_por_tipo}
+              columns={[
+                { field: 'especie__nombre_cientifico' },
+                { field: 'herida_grave', align: 'right', label: 'Grave' },
+                { field: 'herida_leve', align: 'right', label: 'Leve' },
+                { field: 'muerto', align: 'right', label: 'Muerto' },
+              ]}
+            />
+
+            {/* Esfuerzo Pesquero por Embarcación */}
+            <DetalleTabla
+              title="Esfuerzo Pesquero por Embarcación"
+              data={reporte.esfuerzo_por_embarcacion}
+              columns={[
+                { field: 'embarcacion__nombre_embarcacion' },
+                { field: 'total_lances', align: 'right' },
+              ]}
+            />
+          </CardContent>
+        </Card>
+      </Box>
+
+      <Box sx={{ textAlign: 'center', mt: 4 }}>
+        <Button variant="contained" color="primary" onClick={handlePrint}>
           Imprimir Reporte
         </Button>
       </Box>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../../routes/api';
 import FiltroReporte from './FiltroReporte';
 import ContenidoReporte from './ContenidoReporte';
-import { Card, CardContent, Typography, Grid } from '@mui/material';
+import { Grid, Card, CardContent, Typography } from '@mui/material';
 import './Reporte.css';
 
 const Reporte = () => {
@@ -10,7 +10,7 @@ const Reporte = () => {
   const [filtros, setFiltros] = useState({
     profundidad_min: '',
     profundidad_max: '',
-    embarcacion: '',
+    embarcacion: 'Todas',
     mes_captura: [],
     ano_captura: '',
     embarcaciones: [],
@@ -20,15 +20,15 @@ const Reporte = () => {
     profundidadMaxima: 100,
   });
 
-  // Obtener el reporte desde la API con filtros aplicados
-  const fetchReporte =  () => {
+  const fetchReporte = () => {
     const params = {
-      profundidad_min: filtros.profundidad_min !== '' ? filtros.profundidad_min : filtros.profundidadMinima,
-      profundidad_max: filtros.profundidad_max !== '' ? filtros.profundidad_max : filtros.profundidadMaxima,
+      profundidad_min: filtros.profundidad_min || filtros.profundidadMinima,
+      profundidad_max: filtros.profundidad_max || filtros.profundidadMaxima,
       embarcacion: filtros.embarcacion !== 'Todas' ? filtros.embarcacion : '',
       mes_captura: filtros.mes_captura.length > 0 ? filtros.mes_captura.join(',') : '',
       ano_captura: filtros.ano_captura || '',
     };
+
     api.get('/reporte/', { params })
       .then((response) => {
         setReporte(response.data);
@@ -39,7 +39,6 @@ const Reporte = () => {
       });
   };
 
-  // Cargar filtros disponibles desde la API
   const fetchFiltrosDisponibles = async () => {
     try {
       const response = await api.get('/filtros-analisis/');
@@ -47,8 +46,8 @@ const Reporte = () => {
         setFiltros((prev) => ({
           ...prev,
           embarcaciones: response.data.embarcaciones || [],
-          mesesDisponibles: response.data.meses.map((mes) => mes.nombre) || [],
-          anosDisponibles: response.data.anos?.filter((ano) => ano > 0) || [],
+          mesesDisponibles: response.data.meses || [],
+          anosDisponibles: response.data.anos || [],
           profundidadMinima: response.data.rango_profundidad?.profundidad_minima || 0,
           profundidadMaxima: response.data.rango_profundidad?.profundidad_maxima || 100,
         }));
@@ -81,7 +80,7 @@ const Reporte = () => {
       </Grid>
 
       <Grid item xs={12} md={9}>
-        <ContenidoReporte reporte={reporte} filtros={filtros} />
+      <ContenidoReporte reporte={reporte} filtros={filtros} />
       </Grid>
     </Grid>
   );
