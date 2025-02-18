@@ -1,5 +1,3 @@
-// src/components/Perfil.js
-
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -17,7 +15,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions as DialogActionsFooter,
+  DialogActions,
   TextField,
   FormControl,
   InputLabel,
@@ -34,7 +32,7 @@ import {
 import api from '../../routes/api';
 import { roles } from '../../constants/roles'; // Asegúrate de que la ruta sea correcta
 
-const Perfil = () => {
+const Perfil = ({ open, onClose }) => {
   // Estado para almacenar los datos del usuario
   const [userData, setUserData] = useState({
     nombre: '',
@@ -42,19 +40,19 @@ const Perfil = () => {
     role: '',
   });
 
-  // Estados para manejar la carga, guardado, mensajes y modal
+  // Estados para manejar la carga, guardado, mensajes y modal interno de edición
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Estado para manejar los datos editados en el modal
+  // Estado para manejar los datos editados en el modal de edición
   const [editData, setEditData] = useState({
     nombre: '',
     email: '',
     role: '',
-    password: '', // Añadido para manejar la contraseña
+    password: '',
   });
 
   // Función para obtener el token de localStorage
@@ -198,74 +196,29 @@ const Perfil = () => {
     setSuccess('');
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ p: 4, maxWidth: 800, margin: '0 auto' }}>
-      <Typography variant="h4" gutterBottom align="center">
-        Perfil de Usuario
-      </Typography>
-      <Divider sx={{ mb: 4 }} />
-
-      <Grid container spacing={4}>
-        {/* Avatar y Nombre */}
-        <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
-          <Avatar
-            sx={{ width: 150, height: 150, margin: '0 auto' }}
-            src="/static/images/avatar/1.jpg" // Puedes reemplazar esto con una imagen dinámica si está disponible
-            alt={userData.nombre}
-          />
-          <Typography variant="h6" sx={{ mt: 2 }}>
-            {userData.nombre}
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            {userData.role === 'superuser'
-              ? 'Superusuario'
-              : userData.role === 'editor'
-              ? 'Editor'
-              : 'Usuario Normal'}
-          </Typography>
-        </Grid>
-
-        {/* Información del Perfil */}
-        <Grid item xs={12} md={8}>
-          <Card variant="outlined">
-            <CardContent>
-              {/* Nombre */}
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} sm={2}>
-                  <PersonIcon color="action" />
-                </Grid>
-                <Grid item xs={12} sm={10}>
-                  <Typography variant="body1">{userData.nombre}</Typography>
-                </Grid>
-              </Grid>
-              <Divider sx={{ my: 2 }} />
-
-              {/* Correo Electrónico */}
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} sm={2}>
-                  <EmailIcon color="action" />
-                </Grid>
-                <Grid item xs={12} sm={10}>
-                  <Typography variant="body1">{userData.email}</Typography>
-                </Grid>
-              </Grid>
-              <Divider sx={{ my: 2 }} />
-
-              {/* Rol */}
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} sm={2}>
-                  <VpnKeyIcon color="action" />
-                </Grid>
-                <Grid item xs={12} sm={10}>
-                  <Typography variant="body1">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          <DialogTitle>Perfil de Usuario</DialogTitle>
+          <DialogContent dividers>
+            <Box sx={{ p: 2 }}>
+              <Grid container spacing={4}>
+                {/* Avatar y Nombre */}
+                <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
+                  <Avatar
+                    sx={{ width: 150, height: 150, margin: '0 auto' }}
+                    src="/static/images/avatar/1.jpg" // Reemplaza por la imagen dinámica si está disponible
+                    alt={userData.nombre}
+                  />
+                  <Typography variant="h6" sx={{ mt: 2 }}>
+                    {userData.nombre}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
                     {userData.role === 'superuser'
                       ? 'Superusuario'
                       : userData.role === 'editor'
@@ -273,121 +226,171 @@ const Perfil = () => {
                       : 'Usuario Normal'}
                   </Typography>
                 </Grid>
+
+                {/* Información del Perfil */}
+                <Grid item xs={12} md={8}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      {/* Nombre */}
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} sm={2}>
+                          <PersonIcon color="action" />
+                        </Grid>
+                        <Grid item xs={12} sm={10}>
+                          <Typography variant="body1">{userData.nombre}</Typography>
+                        </Grid>
+                      </Grid>
+                      <Divider sx={{ my: 2 }} />
+
+                      {/* Correo Electrónico */}
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} sm={2}>
+                          <EmailIcon color="action" />
+                        </Grid>
+                        <Grid item xs={12} sm={10}>
+                          <Typography variant="body1">{userData.email}</Typography>
+                        </Grid>
+                      </Grid>
+                      <Divider sx={{ my: 2 }} />
+
+                      {/* Rol */}
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} sm={2}>
+                          <VpnKeyIcon color="action" />
+                        </Grid>
+                        <Grid item xs={12} sm={10}>
+                          <Typography variant="body1">
+                            {userData.role === 'superuser'
+                              ? 'Superusuario'
+                              : userData.role === 'editor'
+                              ? 'Editor'
+                              : 'Usuario Normal'}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                    <CardActions sx={{ justifyContent: 'flex-end', p: 2 }}>
+                      <Button
+                        variant="outlined"
+                        startIcon={<EditIcon />}
+                        onClick={handleOpenModal}
+                      >
+                        Editar Perfil
+                      </Button>
+                    </CardActions>
+                  </Card>
+                </Grid>
               </Grid>
-            </CardContent>
-            <CardActions sx={{ justifyContent: 'flex-end', p: 2 }}>
-              <Button
-                variant="outlined"
-                startIcon={<EditIcon />}
-                onClick={handleOpenModal}
-              >
-                Editar Perfil
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
-      </Grid>
+            </Box>
 
-      {/* Ventana Modal para Editar Perfil */}
-      <Dialog open={isModalOpen} onClose={handleCloseModal} fullWidth maxWidth="sm">
-        <DialogTitle>Editar Perfil</DialogTitle>
-        <DialogContent dividers>
-          <Box component="form" noValidate>
-            {/* Nombre */}
-            <TextField
-              margin="normal"
-              label="Nombre"
-              name="nombre"
-              value={editData.nombre}
-              onChange={handleEditInputChange}
-              fullWidth
-              required
-            />
+            {/* Modal para editar el perfil */}
+            <Dialog open={isModalOpen} onClose={handleCloseModal} fullWidth maxWidth="sm">
+              <DialogTitle>Editar Perfil</DialogTitle>
+              <DialogContent dividers>
+                <Box component="form" noValidate>
+                  {/* Nombre */}
+                  <TextField
+                    margin="normal"
+                    label="Nombre"
+                    name="nombre"
+                    value={editData.nombre}
+                    onChange={handleEditInputChange}
+                    fullWidth
+                    required
+                  />
 
-            {/* Correo Electrónico */}
-            <TextField
-              margin="normal"
-              label="Correo Electrónico"
-              name="email"
-              type="email"
-              value={editData.email}
-              onChange={handleEditInputChange}
-              fullWidth
-              required
-            />
+                  {/* Correo Electrónico */}
+                  <TextField
+                    margin="normal"
+                    label="Correo Electrónico"
+                    name="email"
+                    type="email"
+                    value={editData.email}
+                    onChange={handleEditInputChange}
+                    fullWidth
+                    required
+                  />
 
-            {/* Selección de Rol */}
-            <FormControl fullWidth variant="outlined" margin="normal" required>
-              <InputLabel id="edit-role-label">Rol</InputLabel>
-              <Select
-                labelId="edit-role-label"
-                label="Rol"
-                name="role"
-                value={editData.role}
-                onChange={handleEditInputChange}
-              >
-                {roles.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  {/* Selección de Rol */}
+                  <FormControl fullWidth variant="outlined" margin="normal" required>
+                    <InputLabel id="edit-role-label">Rol</InputLabel>
+                    <Select
+                      labelId="edit-role-label"
+                      label="Rol"
+                      name="role"
+                      value={editData.role}
+                      onChange={handleEditInputChange}
+                    >
+                      {roles.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
 
-            {/* Campo Opcional para Cambiar la Contraseña */}
-            <TextField
-              margin="normal"
-              label="Nueva Contraseña"
-              name="password"
-              type="password"
-              value={editData.password}
-              onChange={handleEditInputChange}
-              fullWidth
-              helperText="Dejar en blanco si no deseas cambiar la contraseña."
-              variant="outlined"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActionsFooter>
-          <Button onClick={handleCloseModal} color="secondary">
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSaveChanges}
-            variant="contained"
-            color="primary"
-            startIcon={<SaveIcon />}
-            disabled={saving}
+                  {/* Campo Opcional para Cambiar la Contraseña */}
+                  <TextField
+                    margin="normal"
+                    label="Nueva Contraseña"
+                    name="password"
+                    type="password"
+                    value={editData.password}
+                    onChange={handleEditInputChange}
+                    fullWidth
+                    helperText="Dejar en blanco si no deseas cambiar la contraseña."
+                    variant="outlined"
+                  />
+                </Box>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={handleCloseModal} color="secondary">
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleSaveChanges}
+                  variant="contained"
+                  color="primary"
+                  startIcon={<SaveIcon />}
+                  disabled={saving}
+                >
+                  {saving ? <CircularProgress size={24} color="inherit" /> : 'Guardar'}
+                </Button>
+              </DialogActions>
+            </Dialog>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={onClose} color="secondary">
+              Cerrar
+            </Button>
+          </DialogActions>
+
+          {/* Snackbar para mensajes de éxito */}
+          <Snackbar
+            open={Boolean(success)}
+            autoHideDuration={6000}
+            onClose={handleCloseSnackbar}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
           >
-            {saving ? <CircularProgress size={24} color="inherit" /> : 'Guardar'}
-          </Button>
-        </DialogActionsFooter>
-      </Dialog>
+            <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+              {success}
+            </Alert>
+          </Snackbar>
 
-      {/* Snackbar para mensajes de éxito */}
-      <Snackbar
-        open={Boolean(success)}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
-          {success}
-        </Alert>
-      </Snackbar>
-
-      {/* Snackbar para mensajes de error */}
-      <Snackbar
-        open={Boolean(error)}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
-    </Box>
+          {/* Snackbar para mensajes de error */}
+          <Snackbar
+            open={Boolean(error)}
+            autoHideDuration={6000}
+            onClose={handleCloseSnackbar}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          >
+            <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+              {error}
+            </Alert>
+          </Snackbar>
+        </>
+      )}
+    </Dialog>
   );
 };
 

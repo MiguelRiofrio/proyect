@@ -7,7 +7,6 @@ import AgregarActividadPesquera from '../pages/crud/AgregarActividad';
 import EditarActividadPesquera from '../pages/crud/EditarActividadPesquera';
 import DetalleActividadPesquera from '../pages/crud/DetalleActividadPesquera';
 import { routerCrudRoutes } from '../pages/crud/Component/routerCrudRoutes';
-import Perfil from '../pages/users/Perfil';
 import Dashboard from '../pages/Dashboard_Palangre/Dashboard';
 import Login from '../pages/login/Login';
 import GestionUsuarios from '../pages/users/GestionUsuarios';
@@ -35,7 +34,6 @@ const AppRoutes = ({ isAuthenticated, userRole, handleLogin }) => {
       <Route path="/agregar" element={<AgregarActividadPesquera />} />
       <Route path="/editar/:id" element={<EditarActividadPesquera />} />
       <Route path="/detalle/:id" element={<DetalleActividadPesquera />} />
-      <Route path="/perfil" element={<Perfil />} />
       <Route path="/estadistica" element={<Estadistica />} />
       <Route path="/reporte" element={<Reporte />} />
       <Route path="*" element={<Navigate to="/home" />} />

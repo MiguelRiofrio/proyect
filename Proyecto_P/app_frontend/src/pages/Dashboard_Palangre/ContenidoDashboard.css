@@ -6,10 +6,17 @@
   background-color: #f8f9fa;
 }
 
+.dashboard-card-carnadas{
+  height: 700px; /* Ajusta este valor según lo necesites */
+}
+.carnadas-container {
+  height: 700px; /* Ajusta este valor según lo necesites */
+}
+
 /* Estilo para contenedor estandarizado de gráficos */
 .chart-container {
   width: 100%;
-  height: 400px;           /* Altura fija para todos los gráficos */
+  height: 500px;           /* Altura fija para todos los gráficos */
   position: relative;      /* Para que Chart.js se ajuste correctamente */
   background: #fff;
   border: 1px solid #dee2e6;
@@ -43,6 +50,10 @@
   top: 0;
   z-index: 2;
 }
+.dashboard-card {
+  min-height: 500px; /* Ajusta el valor según necesites */
+}
+
 
 /* Estilo para los encabezados de las tablas */
 .table thead th {

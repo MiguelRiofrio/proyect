@@ -2,14 +2,15 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=False)
+    password = serializers.CharField(write_only=True, required=True)
     role = serializers.ChoiceField(
         choices=[
             ('superuser', 'Superusuario'),
             ('editor', 'Editor'),
             ('user', 'Usuario Normal')
         ],
-        required=False
+        required=False,
+        write_only=True
     )
 
     class Meta:
@@ -19,7 +20,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         role = validated_data.pop('role', 'user')
-        password = validated_data.pop('password')
+        password = validated_data.pop('password', None)
+        if password is None:
+            raise serializers.ValidationError({"password": "Este campo es requerido."})
         user = User(**validated_data)
         user.set_password(password)
 
@@ -58,3 +61,14 @@ class UserSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Calcular el rol basado en las propiedades del usuario
+        if instance.is_superuser:
+            representation['role'] = 'superuser'
+        elif instance.is_staff:
+            representation['role'] = 'editor'
+        else:
+            representation['role'] = 'user'
+        return representation

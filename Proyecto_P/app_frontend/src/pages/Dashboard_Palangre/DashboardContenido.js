@@ -225,7 +225,49 @@ const ContenidoDashboard = ({ dashboardData }) => {
     },
   };
 
-  // 4. Avistamientos por Especie
+  // 4. Proyección Lineal de Capturas
+  const regresionLineal = {
+    labels: dashboardData.capturas_por_mes.map(item => monthNames[item.month - 1]),
+    datasets: [
+      {
+        label: 'Proyección Lineal',
+        data: dashboardData.regresion_lineal,
+        borderColor: 'rgba(255, 206, 86, 1)',
+        backgroundColor: 'rgba(255, 206, 86, 0.2)',
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const regresionLinealOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        labels: { font: { size: 14 } },
+      },
+      datalabels: { display: false },
+      tooltip: {
+        enabled: true,
+        callbacks: { label: (context) => `${formatNumber(context.parsed.y)}` },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          font: { size: 12 },
+          callback: (value) => formatNumber(value),
+        },
+      },
+      x: { ticks: { font: { size: 12 } } },
+    },
+  };
+
+  // 5. Avistamientos por Especie
   const avistamientos = {
     labels: dashboardData.avistamientos.map(item => item.especie),
     datasets: [
@@ -270,61 +312,32 @@ const ContenidoDashboard = ({ dashboardData }) => {
     },
   };
 
-  // 5. Proyección Lineal de Capturas
-  const regresionLineal = {
-    labels: dashboardData.capturas_por_mes.map(item => monthNames[item.month - 1]),
-    datasets: [
-      {
-        label: 'Proyección Lineal',
-        data: dashboardData.regresion_lineal,
-        borderColor: 'rgba(255, 206, 86, 1)',
-        backgroundColor: 'rgba(255, 206, 86, 0.2)',
-        fill: true,
-        tension: 0.4,
-      },
-    ],
-  };
+  // 6. Distribución de Carnadas - Normalizar porcentajes
+  const totalCarnadas = dashboardData.carnadas.reduce(
+    (acc, item) => acc + item.total_porcentaje,
+    0
+  );
+  const normalizedCarnadas = dashboardData.carnadas.map(item => ({
+    ...item,
+    porcentaje_normalizado: totalCarnadas
+      ? (item.total_porcentaje / totalCarnadas) * 100
+      : 0,
+  }));
 
-  const regresionLinealOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'top',
-        labels: { font: { size: 14 } },
-      },
-      datalabels: { display: false },
-      tooltip: {
-        enabled: true,
-        callbacks: { label: (context) => `${formatNumber(context.parsed.y)}` },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          font: { size: 12 },
-          callback: (value) => formatNumber(value),
-        },
-      },
-      x: { ticks: { font: { size: 12 } } },
-    },
-  };
-
-  // 6. Distribución de Carnadas
   const carnadas = {
-    labels: dashboardData.carnadas.map(item => item.nombre_carnada),
+    labels: normalizedCarnadas.map(item => item.nombre_carnada),
     datasets: [
       {
         label: 'Porcentaje de Uso de Carnadas',
-        data: dashboardData.carnadas.map(item => item.total_porcentaje),
+        data: normalizedCarnadas.map(item => item.porcentaje_normalizado),
         backgroundColor: [
           'rgba(75, 192, 192, 0.6)',
           'rgba(255, 159, 64, 0.6)',
           'rgba(255, 99, 132, 0.6)',
           'rgba(54, 162, 235, 0.6)',
         ],
+        borderColor: '#fff',
+        borderWidth: 2,
       },
     ],
   };
@@ -335,17 +348,28 @@ const ContenidoDashboard = ({ dashboardData }) => {
     plugins: {
       legend: {
         display: true,
-        position: 'top',
-        labels: { font: { size: 14 } },
+        position: 'bottom',
+        labels: {
+          font: { size: 14 },
+        },
       },
       datalabels: {
+        anchor: 'end',
+        align: 'end',
+        offset: 10,
         color: '#000',
-        formatter: (value) => `${value}`,
-        font: { weight: 'bold', size: 12 },
+        backgroundColor: '#fff',
+        borderColor: '#000',
+        borderWidth: 1,
+        borderRadius: 4,
+        font: { weight: 'bold', size: 14 },
+        formatter: (value) => `${value.toFixed(1)}%`,
       },
       tooltip: {
         enabled: true,
-        callbacks: { label: (context) => `${context.label}: ${context.parsed}` },
+        callbacks: {
+          label: (context) => `${context.label}: ${context.parsed.toFixed(1)}%`,
+        },
       },
     },
   };
@@ -405,14 +429,14 @@ const ContenidoDashboard = ({ dashboardData }) => {
     <div className="dashboard-container">
       {/* 1. Capturas Retenidas por Mes */}
       <Row className="mb-5">
-        <Col md="12">
+        <Col xs="12">
           <Card className="shadow dashboard-card">
             <CardHeader className="bg-primary text-white">
               Capturas Retenidas por Mes
             </CardHeader>
             <CardBody>
               <Row>
-                <Col md="6">
+                <Col xs="12" md="6" className="mb-3 mb-md-0">
                   <ChartWithFallback
                     data={capturasPorMes}
                     options={capturasPorMesOptions}
@@ -421,7 +445,7 @@ const ContenidoDashboard = ({ dashboardData }) => {
                     )}
                   />
                 </Col>
-                <Col md="6">
+                <Col xs="12" md="6">
                   {dashboardData.capturas_por_mes.length > 0 ? (
                     renderTable(
                       ['Mes', 'Capturas Retenidas'],
@@ -444,14 +468,14 @@ const ContenidoDashboard = ({ dashboardData }) => {
 
       {/* 2. Uso de Artes de Pesca */}
       <Row className="mb-5">
-        <Col md="12">
+        <Col xs="12">
           <Card className="shadow dashboard-card">
             <CardHeader className="bg-secondary text-white">
               Uso de Artes de Pesca
             </CardHeader>
             <CardBody>
               <Row>
-                <Col md="6">
+                <Col xs="12" md="6" className="mb-3 mb-md-0">
                   <ChartWithFallback
                     data={artesPesca}
                     options={artesPescaOptions}
@@ -460,7 +484,7 @@ const ContenidoDashboard = ({ dashboardData }) => {
                     )}
                   />
                 </Col>
-                <Col md="6">
+                <Col xs="12" md="6">
                   {dashboardData.artes_pesca.length > 0 ? (
                     renderTable(
                       ['Tipo de Arte de Pesca', 'Total (%)'],
@@ -483,14 +507,14 @@ const ContenidoDashboard = ({ dashboardData }) => {
 
       {/* 3. Capturas por Año */}
       <Row className="mb-5">
-        <Col md="12">
+        <Col xs="12">
           <Card className="shadow dashboard-card">
             <CardHeader className="bg-success text-white">
               Capturas por Año
             </CardHeader>
             <CardBody>
               <Row>
-                <Col md="6">
+                <Col xs="12" md="6" className="mb-3 mb-md-0">
                   <ChartWithFallback
                     data={capturasPorAno}
                     options={capturasPorAnoOptions}
@@ -499,7 +523,7 @@ const ContenidoDashboard = ({ dashboardData }) => {
                     )}
                   />
                 </Col>
-                <Col md="6">
+                <Col xs="12" md="6">
                   {dashboardData.capturas_por_ano.length > 0 ? (
                     renderTable(
                       ['Año', 'Capturas Retenidas', 'Capturas Descartadas'],
@@ -523,14 +547,14 @@ const ContenidoDashboard = ({ dashboardData }) => {
 
       {/* 4. Proyección Lineal de Capturas */}
       <Row className="mb-5">
-        <Col md="12">
+        <Col xs="12">
           <Card className="shadow dashboard-card">
             <CardHeader className="bg-warning text-white">
               Proyección Lineal de Capturas
             </CardHeader>
             <CardBody>
               <Row>
-                <Col md="6">
+                <Col xs="12" md="6" className="mb-3 mb-md-0">
                   <ChartWithFallback
                     data={regresionLineal}
                     options={regresionLinealOptions}
@@ -539,7 +563,7 @@ const ContenidoDashboard = ({ dashboardData }) => {
                     )}
                   />
                 </Col>
-                <Col md="6">
+                <Col xs="12" md="6">
                   {dashboardData.capturas_por_mes.length > 0 &&
                   dashboardData.regresion_lineal.length > 0 ? (
                     renderTable(
@@ -563,14 +587,14 @@ const ContenidoDashboard = ({ dashboardData }) => {
 
       {/* 5. Avistamientos por Especie */}
       <Row className="mb-5">
-        <Col md="12">
+        <Col xs="12">
           <Card className="shadow dashboard-card">
             <CardHeader className="bg-info text-white">
               Avistamientos por Especie
             </CardHeader>
             <CardBody>
               <Row>
-                <Col md="6">
+                <Col xs="12" md="6" className="mb-3 mb-md-0">
                   <ChartWithFallback
                     data={avistamientos}
                     options={avistamientosOptions}
@@ -579,7 +603,7 @@ const ContenidoDashboard = ({ dashboardData }) => {
                     )}
                   />
                 </Col>
-                <Col md="6">
+                <Col xs="12" md="6">
                   {dashboardData.avistamientos.length > 0 ? (
                     renderTable(
                       ['Especie', 'Total Avistamientos'],
@@ -602,29 +626,30 @@ const ContenidoDashboard = ({ dashboardData }) => {
 
       {/* 6. Distribución de Carnadas */}
       <Row className="mb-5">
-        <Col md="12">
-          <Card className="shadow dashboard-card">
+        <Col xs="25">
+          <Card className="dashboard-card-carnadas" >
             <CardHeader className="bg-danger text-white">
               Distribución de Carnadas
             </CardHeader>
             <CardBody>
               <Row>
-                <Col md="6">
-                  <ChartWithFallback
-                    data={carnadas}
-                    options={carnadasOptions}
-                    renderChart={() => (
-                      <Pie data={carnadas} options={carnadasOptions} />
-                    )}
-                  />
+                <Col xs="14" md="6" className=".carnadas-container">
+                    <ChartWithFallback
+                      data={carnadas}
+                      options={carnadasOptions}
+                      renderChart={() => (
+                        <Pie data={carnadas} options={carnadasOptions} />
+                      )}
+                    />
+                 
                 </Col>
-                <Col md="6">
+                <Col xs="12" md="6">
                   {dashboardData.carnadas.length > 0 ? (
                     renderTable(
                       ['Nombre de Carnada', 'Porcentaje de Uso'],
-                      dashboardData.carnadas.map(item => [
+                      normalizedCarnadas.map(item => [
                         item.nombre_carnada,
-                        `${item.total_porcentaje}%`,
+                        `${item.porcentaje_normalizado.toFixed(2)}%`,
                       ]),
                       [null, (value) => `${value}`],
                       false
@@ -638,17 +663,16 @@ const ContenidoDashboard = ({ dashboardData }) => {
           </Card>
         </Col>
       </Row>
-
       {/* 7. Incidencias */}
       <Row className="mb-5">
-        <Col md="12">
+        <Col xs="12">
           <Card className="shadow dashboard-card">
             <CardHeader className="bg-dark text-white">
               Incidencias
             </CardHeader>
             <CardBody>
               <Row>
-                <Col md="6">
+                <Col xs="12" md="6" className="mb-3 mb-md-0">
                   <ChartWithFallback
                     data={incidencias}
                     options={incidenciasOptions}
@@ -657,7 +681,7 @@ const ContenidoDashboard = ({ dashboardData }) => {
                     )}
                   />
                 </Col>
-                <Col md="6">
+                <Col xs="12" md="6">
                   {dashboardData.incidencias ? (
                     (dashboardData.incidencias.total_graves !== null ||
                      dashboardData.incidencias.total_leves !== null ||

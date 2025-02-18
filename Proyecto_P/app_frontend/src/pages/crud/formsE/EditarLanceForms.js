@@ -57,8 +57,7 @@ const EditarLanceForms = ({
       return;
     }
 
-    // Para el nuevo lance, numero_lance será el siguiente entero
-    // (o podrías dejarlo en 0 y pedir al usuario que lo asigne).
+    // Para el nuevo lance, numero_lance será el siguiente entero.
     const maxNumero = Math.max(...lances.map((l) => l.numero_lance || 0), 0);
     const nuevo = {
       codigo_lance: '',
@@ -70,7 +69,8 @@ const EditarLanceForms = ({
         switch ((tipo || '').toLowerCase()) {
           case 'palangre':
             return {
-              Tipo_anzuelo: 'N',
+              // Cambio realizado: se usa "tipo_de_anzuelo" en lugar de "Tipo_anzuelo"
+              tipo_de_anzuelo: 'N',
               tamano_anzuelo: 0.0,
               cantidad_anzuelos: 0,
               linea_madre_metros: 0.0,
@@ -110,8 +110,7 @@ const EditarLanceForms = ({
 
     setLances([...lances, nuevo]);
     // Al agregar se reordenará en sortedLances, 
-    // pero podemos intentar mover la pestaña al final (que sería el nuevo lance).
-    // Para eso, usamos la longitud actual de 'lances'.
+    // pero se mueve la pestaña al final (la del nuevo lance).
     setActiveTab(String(lances.length));
     toast.success("Lance vacío añadido.", {
       position: "top-right",
@@ -127,7 +126,7 @@ const EditarLanceForms = ({
     if (confirmacion) {
       // sortedLances[indexInSorted] es el lance a eliminar.
       const lanceAEliminar = sortedLances[indexInSorted];
-      // Buscar su posición en lances original
+      // Buscar su posición en lances original.
       const originalIndex = lances.indexOf(lanceAEliminar);
       if (originalIndex >= 0) {
         const nuevos = [...lances];
@@ -135,7 +134,7 @@ const EditarLanceForms = ({
         setLances(nuevos);
       }
 
-      // Ajustar pestaña activa
+      // Ajustar pestaña activa.
       if (activeTab === String(indexInSorted) && lances.length - 1 > 0) {
         setActiveTab('0');
       } else if (lances.length - 1 === 0) {
@@ -161,7 +160,7 @@ const EditarLanceForms = ({
    * Maneja cambios en los lances (field path).
    */
   const handleLanceChange = (lanceIndexInSorted, path, value) => {
-    // localizamos el lance en 'lances' original
+    // Localizamos el lance en 'lances' original.
     const lanceObj = sortedLances[lanceIndexInSorted];
     const originalIndex = lances.indexOf(lanceObj);
     if (originalIndex < 0) return;
@@ -356,7 +355,7 @@ const EditarLanceForms = ({
               </tbody>
             </Table>
 
-            {/* renderDetalles si es Palangre, Arrastre o Cerco */}
+            {/* Renderizar detalles específicos según el tipo de lance */}
             {tipo &&
               renderDetalles[tipo.toLowerCase()] &&
               renderDetalles[tipo.toLowerCase()](

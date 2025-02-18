@@ -41,6 +41,7 @@ class ActividadPesqueraViewSet(SchemaMixin, viewsets.ModelViewSet):
         actividades = models.ActividadPesquera.objects.all()
         data = actividades.values(
             'codigo_actividad', 
+            'fecha_salida', 
             'tipo_arte_pesca', 
             'embarcacion__nombre_embarcacion', 
             'puerto_salida__nombre_puerto',

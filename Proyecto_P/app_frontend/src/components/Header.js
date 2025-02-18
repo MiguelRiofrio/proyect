@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { ButtonDropdown, DropdownToggle, DropdownMenu, DropdownItem, Button } from 'reactstrap';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import Perfil from '../pages/users/Perfil'; // Asegúrate de que la ruta sea correcta
 import './Header.css';
 
 const Header = ({ isAuthenticated, handleLogout, toggleSidebar }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const navigate = useNavigate();
+  const [openPerfil, setOpenPerfil] = useState(false); // Estado para controlar el popup del perfil
 
   // Controlar la apertura del menú desplegable del usuario
   const toggleUserMenu = () => setDropdownOpen(!dropdownOpen);
 
- 
+  // Al hacer clic en "Perfil", se abre el modal y se cierra el dropdown
+  const openPerfilModal = () => {
+    setOpenPerfil(true);
+    toggleUserMenu();
+  };
 
   return (
     <header className="header d-flex justify-content-between align-items-center p-3 bg-light shadow-sm">
@@ -32,10 +37,8 @@ const Header = ({ isAuthenticated, handleLogout, toggleSidebar }) => {
         className="header-title text-dark font-weight-bold"
         style={{ fontSize: '1.5rem', textDecoration: 'none' }}
       >
-          Gestor de Especies Vulnerables
+        Gestor de Especies Vulnerables
       </NavLink>
-
-     
 
       {/* Menú de usuario */}
       {isAuthenticated && (
@@ -49,13 +52,8 @@ const Header = ({ isAuthenticated, handleLogout, toggleSidebar }) => {
             <AccountCircle />
           </DropdownToggle>
           <DropdownMenu end>
-            {/* Navegar al perfil */}
-            <DropdownItem
-              onClick={() => {
-                navigate('/perfil');
-                toggleUserMenu();
-              }}
-            >
+            {/* Al hacer clic en "Perfil" se abre el modal */}
+            <DropdownItem onClick={openPerfilModal}>
               Perfil
             </DropdownItem>
             <DropdownItem divider />
@@ -63,6 +61,11 @@ const Header = ({ isAuthenticated, handleLogout, toggleSidebar }) => {
             <DropdownItem onClick={handleLogout}>Cerrar Sesión</DropdownItem>
           </DropdownMenu>
         </ButtonDropdown>
+      )}
+
+      {/* Renderizado condicional del popup de Perfil */}
+      {openPerfil && (
+        <Perfil open={openPerfil} onClose={() => setOpenPerfil(false)} />
       )}
     </header>
   );

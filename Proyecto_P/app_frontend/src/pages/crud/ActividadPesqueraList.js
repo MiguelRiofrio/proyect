@@ -32,7 +32,6 @@ import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
   Edit as EditIcon, 
-
 } from '@mui/icons-material';
 import api from '../../routes/api';
 
@@ -68,7 +67,10 @@ const ActividadPesqueraList = () => {
       setFilteredActividades(response.data);
       setError(null);
     } catch (error) {
-      setError(error.response?.data?.message || 'Error al obtener las actividades pesqueras. Inténtalo nuevamente.');
+      setError(
+        error.response?.data?.message ||
+          'Error al obtener las actividades pesqueras. Inténtalo nuevamente.'
+      );
     } finally {
       setLoading(false);
     }
@@ -113,8 +115,14 @@ const ActividadPesqueraList = () => {
     // Ordenamiento
     if (sortConfig.key) {
       data.sort((a, b) => {
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        // Si se ordena por fecha, transformarla en objeto Date para comparar correctamente
+        if (sortConfig.key === 'fecha_salida') {
+          aValue = new Date(aValue);
+          bValue = new Date(bValue);
+        }
 
         if (aValue < bValue) {
           return sortConfig.direction === 'asc' ? -1 : 1;
@@ -211,16 +219,34 @@ const ActividadPesqueraList = () => {
             <Table>
               <TableHead sx={{ backgroundColor: '#1976d2' }}>
                 <TableRow>
-                  <TableCell sx={{ color: '#fff', cursor: 'pointer' }} onClick={() => requestSort('codigo_actividad')}>
+                  <TableCell
+                    sx={{ color: '#fff', cursor: 'pointer' }}
+                    onClick={() => requestSort('codigo_actividad')}
+                  >
                     Código Actividad{getSortIndicator('codigo_actividad')}
                   </TableCell>
-                  <TableCell sx={{ color: '#fff', cursor: 'pointer' }} onClick={() => requestSort('embarcacion__nombre_embarcacion')}>
+                  <TableCell
+                    sx={{ color: '#fff', cursor: 'pointer' }}
+                    onClick={() => requestSort('fecha_salida')}
+                  >
+                    Fecha Salida{getSortIndicator('fecha_salida')}
+                  </TableCell>
+                  <TableCell
+                    sx={{ color: '#fff', cursor: 'pointer' }}
+                    onClick={() => requestSort('embarcacion__nombre_embarcacion')}
+                  >
                     Embarcación{getSortIndicator('embarcacion__nombre_embarcacion')}
                   </TableCell>
-                  <TableCell sx={{ color: '#fff', cursor: 'pointer' }} onClick={() => requestSort('puerto_salida__nombre_puerto')}>
+                  <TableCell
+                    sx={{ color: '#fff', cursor: 'pointer' }}
+                    onClick={() => requestSort('puerto_salida__nombre_puerto')}
+                  >
                     Puerto Salida{getSortIndicator('puerto_salida__nombre_puerto')}
                   </TableCell>
-                  <TableCell sx={{ color: '#fff', cursor: 'pointer' }} onClick={() => requestSort('observador__nombre')}>
+                  <TableCell
+                    sx={{ color: '#fff', cursor: 'pointer' }}
+                    onClick={() => requestSort('observador__nombre')}
+                  >
                     Observador{getSortIndicator('observador__nombre')}
                   </TableCell>
                   <TableCell sx={{ color: '#fff' }}>Acciones</TableCell>
@@ -232,6 +258,9 @@ const ActividadPesqueraList = () => {
                   currentItems.map((actividad) => (
                     <TableRow key={actividad.codigo_actividad}>
                       <TableCell>{actividad.codigo_actividad}</TableCell>
+                      <TableCell>
+                        {new Date(actividad.fecha_salida).toLocaleDateString()}
+                      </TableCell>
                       <TableCell>{actividad.embarcacion__nombre_embarcacion}</TableCell>
                       <TableCell>{actividad.puerto_salida__nombre_puerto}</TableCell>
                       <TableCell>{actividad.observador__nombre}</TableCell>
@@ -245,14 +274,13 @@ const ActividadPesqueraList = () => {
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Editar Detalle">
-                        <IconButton
-                            color="edit"
+                          <IconButton
+                            color="primary"
                             onClick={() => navigate(`/editar/${actividad.codigo_actividad}`)}
                           >
                             <EditIcon />
                           </IconButton>
                         </Tooltip>
-                      
                         <Tooltip title="Eliminar Actividad">
                           <IconButton
                             color="error"
@@ -266,7 +294,7 @@ const ActividadPesqueraList = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} align="center">
+                    <TableCell colSpan={6} align="center">
                       No se encontraron resultados.
                     </TableCell>
                   </TableRow>

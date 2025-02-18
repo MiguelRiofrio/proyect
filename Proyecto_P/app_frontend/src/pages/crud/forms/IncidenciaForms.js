@@ -1,10 +1,27 @@
 import React, { useState } from 'react';
-import { Table, Input, Nav,NavItem,NavLink,TabContent, TabPane, Button, FormGroup, Label,} 
-from 'reactstrap';
+import {
+  Table,
+  Input,
+  Nav,
+  NavItem,
+  NavLink,
+  TabContent,
+  TabPane,
+  Button,
+  FormGroup,
+  Label,
+  Card,
+  CardBody,
+  CardHeader,
+  Row,
+  Col,
+  Alert
+} from 'reactstrap';
 import classnames from 'classnames';
 
-const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_lance) => {
-  const [activeTab, setActiveTab] = React.useState('0');
+const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] }, codigo_lance) => {
+  const [activeTab, setActiveTab] = useState('0');
+  const [alertMessage, setAlertMessage] = useState('');
 
   const toggle = (tab) => {
     if (activeTab !== tab) {
@@ -13,54 +30,59 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
   };
 
   const agregarIncidencia = () => {
-    const nuevoNumeroIncidencia = incidencias.length > 0
-    ? Math.max(...incidencias.map(c => c.numero_incidencia)) + 1
-    : 1;
+    const nuevoNumeroIncidencia =
+      incidencias.length > 0
+        ? Math.max(...incidencias.map((c) => c.numero_incidencia)) + 1
+        : 1;
 
     const codigo_incidencia = `A-${nuevoNumeroIncidencia}-${codigo_lance}`;
     const nuevaIncidencia = {
       codigo_incidencia,
-      especie: { codigo_especie: 0 }, // Inicializado como objeto
+      especie: { codigo_especie: 0 },
       herida_grave: 0,
       herida_leve: 0,
       muerto: 0,
       total_individuos: 0,
       observacion: '',
-      detalles: [], // Lista para almacenar detalles por tipo (aves, mamíferos, tortugas, palangre)
+      detalles: {} // Se inicializa como objeto
     };
+
     setIncidencias([...incidencias, nuevaIncidencia]);
     setActiveTab(`${incidencias.length}`);
   };
 
   const agregarDetalle = (index, tipo) => {
+    // Valores iniciales para cada tipo de detalle
+    const detalleInitialValues = {
+      aves: { pico: 0, patas: 0, alas: 0 },
+      mamiferos: { hocico: 0, cuello: 0, cuerpo: 0 },
+      tortugas: { pico: 0, cuerpo: 0, aleta: 0 },
+      palangre: { orinque: 0, reinal: 0, anzuelo: 0, linea_madre: 0 }
+    };
+
     const nuevasIncidencias = incidencias.map((incidencia, i) => {
       if (i === index) {
-        const detallesExistentes = incidencia.detalles;
-
-        // Verificar la lógica de exclusividad
-        if (['aves', 'mamiferos', 'tortugas'].includes(tipo)) {
-          const yaExisteOtroTipo = detallesExistentes.some((detalle) =>
-            ['aves', 'mamiferos', 'tortugas'].includes(detalle.tipo)
-          );
-          if (yaExisteOtroTipo) {
-            alert('Solo se puede agregar un detalle entre aves, mamíferos o tortugas.');
-            return incidencia;
+        // Exclusividad entre aves, mamiferos y tortugas
+        if (["aves", "mamiferos", "tortugas"].includes(tipo)) {
+          const groupKeys = ["aves", "mamiferos", "tortugas"];
+          for (const key of groupKeys) {
+            if (incidencia.detalles[key] !== undefined) {
+              setAlertMessage("Solo se puede agregar un detalle entre aves, mamiferos o tortugas.");
+              return incidencia;
+            }
           }
         }
-
-        // Verificar la exclusividad de palangre
-        if (tipo === 'palangre') {
-          const yaExistePalangre = detallesExistentes.some((detalle) => detalle.tipo === 'palangre');
-          if (yaExistePalangre) {
-            alert('Solo se puede agregar un detalle de palangre.');
-            return incidencia;
-          }
+        // Exclusividad para palangre
+        if (tipo === "palangre" && incidencia.detalles["palangre"] !== undefined) {
+          setAlertMessage("Solo se puede agregar un detalle de palangre.");
+          return incidencia;
         }
-
-        // Agregar el nuevo detalle
         return {
           ...incidencia,
-          detalles: [...detallesExistentes, { tipo, cantidad: 0 }],
+          detalles: {
+            ...incidencia.detalles,
+            [tipo]: detalleInitialValues[tipo]
+          }
         };
       }
       return incidencia;
@@ -69,28 +91,32 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
     setIncidencias(nuevasIncidencias);
   };
 
-  const handleDetalleChange = (index, detalleIndex, e) => {
-    const { name, value } = e.target;
+  const handleDetalleFieldChange = (index, tipo, field, e) => {
+    const { value } = e.target;
     const nuevasIncidencias = incidencias.map((incidencia, i) => {
       if (i === index) {
-        const nuevosDetalles = incidencia.detalles.map((detalle, j) => {
-          if (j === detalleIndex) {
-            return { ...detalle, [name]: parseInt(value, 10) || 0 };
+        return {
+          ...incidencia,
+          detalles: {
+            ...incidencia.detalles,
+            [tipo]: {
+              ...incidencia.detalles[tipo],
+              [field]: parseInt(value, 10) || 0,
+            }
           }
-          return detalle;
-        });
-        return { ...incidencia, detalles: nuevosDetalles };
+        };
       }
       return incidencia;
     });
     setIncidencias(nuevasIncidencias);
   };
 
-  const eliminarDetalle = (index, detalleIndex) => {
+  const eliminarDetalle = (index, tipo) => {
     const nuevasIncidencias = incidencias.map((incidencia, i) => {
       if (i === index) {
-        const nuevosDetalles = incidencia.detalles.filter((_, j) => j !== detalleIndex);
-        return { ...incidencia, detalles: nuevosDetalles };
+        const newDetalles = { ...incidencia.detalles };
+        delete newDetalles[tipo];
+        return { ...incidencia, detalles: newDetalles };
       }
       return incidencia;
     });
@@ -116,14 +142,16 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
             [name]:
               name === 'especie'
                 ? { codigo_especie: parseInt(value, 10) || 0 }
-                : name === 'herida_grave' || name === 'herida_leve' || name === 'muerto'
+                : name === 'herida_grave' ||
+                  name === 'herida_leve' ||
+                  name === 'muerto'
                 ? parseInt(value, 10) || 0
                 : value,
           }
         : incidencia
     );
 
-    // Actualizar el total_individuos automáticamente si cambian los campos relacionados
+    // Actualizar total de individuos
     const incidenciaActualizada = nuevasIncidencias[index];
     if (['herida_grave', 'herida_leve', 'muerto'].includes(name)) {
       incidenciaActualizada.total_individuos =
@@ -138,9 +166,18 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
 
   return (
     <>
-      <Button color="dark" onClick={agregarIncidencia} className="mb-3">
-        Agregar Incidencia
-      </Button>
+      {alertMessage && (
+        <Alert color="danger" toggle={() => setAlertMessage('')}>
+          {alertMessage}
+        </Alert>
+      )}
+
+      <div className="mb-4">
+        <Button color="dark" onClick={agregarIncidencia}>
+          <i className="fa fa-plus mr-2" />
+          Agregar Incidencia
+        </Button>
+      </div>
 
       <Nav tabs>
         {incidencias.map((incidencia, index) => (
@@ -150,7 +187,14 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
               onClick={() => toggle(`${index}`)}
             >
               Incidencia {index + 1}{' '}
-              <Button close aria-label="Cancel" onClick={() => eliminarIncidencia(index)} />
+              <Button
+                close
+                aria-label="Eliminar"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  eliminarIncidencia(index);
+                }}
+              />
             </NavLink>
           </NavItem>
         ))}
@@ -159,10 +203,11 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
       <TabContent activeTab={activeTab}>
         {incidencias.map((incidencia, index) => (
           <TabPane key={incidencia.codigo_incidencia} tabId={`${index}`}>
-            <Table bordered className="mt-3">
-              <tbody>
-                <tr>
-                  <td>
+            <Card className="mt-3">
+              <CardHeader>Detalles de la Incidencia</CardHeader>
+              <CardBody>
+                <Row form>
+                  <Col md={6}>
                     <FormGroup>
                       <Label for={`especie-${index}`}>Especie</Label>
                       <Input
@@ -183,8 +228,8 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
                         ))}
                       </Input>
                     </FormGroup>
-                  </td>
-                  <td>
+                  </Col>
+                  <Col md={6}>
                     <FormGroup>
                       <Label for={`observacion-${index}`}>Observación</Label>
                       <Input
@@ -196,10 +241,11 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
                         placeholder="Ingrese observaciones"
                       />
                     </FormGroup>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
+                  </Col>
+                </Row>
+
+                <Row form>
+                  <Col md={4}>
                     <FormGroup>
                       <Label for={`herida_grave-${index}`}>Herida Grave</Label>
                       <Input
@@ -211,8 +257,8 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
                         min={0}
                       />
                     </FormGroup>
-                  </td>
-                  <td>
+                  </Col>
+                  <Col md={4}>
                     <FormGroup>
                       <Label for={`herida_leve-${index}`}>Herida Leve</Label>
                       <Input
@@ -224,10 +270,8 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
                         min={0}
                       />
                     </FormGroup>
-                  </td>
-                </tr>
-                <tr>
-                  <td>
+                  </Col>
+                  <Col md={4}>
                     <FormGroup>
                       <Label for={`muerto-${index}`}>Muerto</Label>
                       <Input
@@ -239,8 +283,11 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
                         min={0}
                       />
                     </FormGroup>
-                  </td>
-                  <td>
+                  </Col>
+                </Row>
+
+                <Row form>
+                  <Col md={6}>
                     <FormGroup>
                       <Label for={`total_individuos-${index}`}>Total Individuos</Label>
                       <Input
@@ -251,75 +298,86 @@ const IncidenciaForms = ({ incidencias, setIncidencias, especies = [] },codigo_l
                         disabled
                       />
                     </FormGroup>
-                  </td>
-                </tr>
-              </tbody>
-            </Table>
+                  </Col>
+                </Row>
 
-            <div className="mb-3">
-              <Button
-                color="dark"
-                onClick={() => agregarDetalle(index, 'aves')}
-                className="mr-2"
-              >
-                Agregar Detalle de Aves
-              </Button>
-              <Button
-                color="dark"
-                onClick={() => agregarDetalle(index, 'mamiferos')}
-                className="mr-2"
-              >
-                Agregar Detalle de Mamíferos
-              </Button>
-              <Button
-                color="dark"
-                onClick={() => agregarDetalle(index, 'tortugas')}
-                className="mr-2"
-              >
-                Agregar Detalle de Tortugas
-              </Button>
-              <Button
-                color="dark"
-                onClick={() => agregarDetalle(index, 'palangre')}
-              >
-                Agregar Detalle de Palangre
-              </Button>
-            </div>
+                <hr />
 
-            {incidencia.detalles.map((detalle, detalleIndex) => (
-              <Table bordered key={detalleIndex} className="mt-3">
-                <thead>
-                  <tr>
-                    <th>Tipo</th>
-                    <th>Cantidad</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>{detalle.tipo.charAt(0).toUpperCase() + detalle.tipo.slice(1)}</td>
-                    <td>
-                      <Input
-                        type="number"
-                        name="cantidad"
-                        value={detalle.cantidad || 0}
-                        onChange={(e) => handleDetalleChange(index, detalleIndex, e)}
-                        min={0}
-                      />
-                    </td>
-                    <td>
-                      <Button
-                        color="danger"
-                        size="sm"
-                        onClick={() => eliminarDetalle(index, detalleIndex)}
-                      >
-                        Eliminar
-                      </Button>
-                    </td>
-                  </tr>
-                </tbody>
-              </Table>
-            ))}
+                <div className="mb-3">
+                  <Button
+                    color="secondary"
+                    size="sm"
+                    onClick={() => agregarDetalle(index, 'aves')}
+                    className="mr-2"
+                  >
+                    Agregar Detalle de Aves
+                  </Button>
+                  <Button
+                    color="secondary"
+                    size="sm"
+                    onClick={() => agregarDetalle(index, 'mamiferos')}
+                    className="mr-2"
+                  >
+                    Agregar Detalle de Mamíferos
+                  </Button>
+                  <Button
+                    color="secondary"
+                    size="sm"
+                    onClick={() => agregarDetalle(index, 'tortugas')}
+                    className="mr-2"
+                  >
+                    Agregar Detalle de Tortugas
+                  </Button>
+                  <Button
+                    color="secondary"
+                    size="sm"
+                    onClick={() => agregarDetalle(index, 'palangre')}
+                  >
+                    Agregar Detalle de Palangre
+                  </Button>
+                </div>
+
+                {Object.keys(incidencia.detalles).length > 0 && (
+                  <>
+                    {Object.entries(incidencia.detalles).map(([tipo, detalle]) => (
+                      <Card className="mt-3" key={tipo}>
+                        <CardHeader>
+                          Detalle: {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
+                          <Button
+                            color="danger"
+                            size="sm"
+                            onClick={() => eliminarDetalle(index, tipo)}
+                            className="float-right"
+                          >
+                            Eliminar
+                          </Button>
+                        </CardHeader>
+                        <CardBody>
+                          <Table bordered>
+                            <tbody>
+                              {Object.entries(detalle).map(([field, value]) => (
+                                <tr key={field}>
+                                  <td>{field}</td>
+                                  <td>
+                                    <Input
+                                      type="number"
+                                      value={value}
+                                      onChange={(e) =>
+                                        handleDetalleFieldChange(index, tipo, field, e)
+                                      }
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </Table>
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </>
+                )}
+              </CardBody>
+            </Card>
           </TabPane>
         ))}
       </TabContent>

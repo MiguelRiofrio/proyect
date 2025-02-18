@@ -223,25 +223,60 @@ class KpiHomeView(APIView):
             # Total de especies
             total_especies = models.Especie.objects.count()
 
-            # Total de observaciones registradas (avistamientos)
+            # Obtener algunos ejemplos de especies (nombres comunes)
+            species_examples = list(
+                models.Especie.objects.values_list('nombre_comun', flat=True)[:5]
+            )
+
+            # Total de observaciones registradas (avistamientos) – suma combinada
             total_avistamientos = (
                 models.Avistamiento.objects.aggregate(
                     total=Sum(
-                        ExpressionWrapper(F('alimentandose') + F('deambulando') + F('en_reposo'), output_field=FloatField())
+                        ExpressionWrapper(
+                            F('alimentandose') + F('deambulando') + F('en_reposo'),
+                            output_field=FloatField()
+                        )
                     )
-                )['total']
-                or 0
+                )['total'] or 0
             )
 
-            # Total de incidencias registradas
+            # Detalle individual de observaciones
+            alimentandose_total = models.Avistamiento.objects.aggregate(
+                total=Sum('alimentandose')
+            )['total'] or 0
+
+            deambulando_total = models.Avistamiento.objects.aggregate(
+                total=Sum('deambulando')
+            )['total'] or 0
+
+            en_reposo_total = models.Avistamiento.objects.aggregate(
+                total=Sum('en_reposo')
+            )['total'] or 0
+
+            # Total de incidencias registradas – suma combinada
             total_incidencias = (
                 models.Incidencia.objects.aggregate(
                     total=Sum(
-                        ExpressionWrapper(F('herida_grave') + F('herida_leve') + F('muerto'), output_field=FloatField())
+                        ExpressionWrapper(
+                            F('herida_grave') + F('herida_leve') + F('muerto'),
+                            output_field=FloatField()
+                        )
                     )
-                )['total']
-                or 0
+                )['total'] or 0
             )
+
+            # Detalle individual de incidencias
+            herida_grave_total = models.Incidencia.objects.aggregate(
+                total=Sum('herida_grave')
+            )['total'] or 0
+
+            herida_leve_total = models.Incidencia.objects.aggregate(
+                total=Sum('herida_leve')
+            )['total'] or 0
+
+            muerto_total = models.Incidencia.objects.aggregate(
+                total=Sum('muerto')
+            )['total'] or 0
 
             # Especie más común en capturas
             especie_mas_comun = (
@@ -254,42 +289,75 @@ class KpiHomeView(APIView):
             # Cálculo del Índice de Diversidad de Shannon
             especies_capturadas = models.DatosCaptura.objects.values('especie__nombre_cientifico').annotate(
                 total_individuos=Sum('individuos_retenidos')
-            )
+            ).filter(total_individuos__gt=0)
 
-            # Filtrar especies con al menos un individuo retenido
-            especies_capturadas = especies_capturadas.filter(total_individuos__gt=0)
-
-            total_individuos = especies_capturadas.aggregate(total=Sum('total_individuos'))['total'] or 0
+            total_individuos = especies_capturadas.aggregate(
+                total=Sum('total_individuos')
+            )['total'] or 0
 
             if total_individuos > 0 and especies_capturadas.exists():
                 shannon_index = 0
+                detalles_shannon = []
                 for especie in especies_capturadas:
-                    p_i = especie['total_individuos'] / total_individuos
+                    cantidad = especie['total_individuos']
+                    p_i = cantidad / total_individuos
                     if p_i > 0:
                         shannon_index -= p_i * math.log(p_i)
-                # Opcional: Redondear a dos decimales
+                    detalles_shannon.append({
+                        "nombre_cientifico": especie.get('especie__nombre_cientifico', 'Desconocido'),
+                        "cantidad": cantidad,
+                        "proporcion": round(p_i, 4)
+                    })
                 shannon_index = round(shannon_index, 2)
             else:
-                shannon_index = 0  # O podrías usar None para indicar ausencia de datos
+                shannon_index = 0
+                detalles_shannon = []
 
-            # Preparar datos de respuesta
+            # Preparar datos de respuesta con más detalles para los modals
             data = {
-                "total_especies": total_especies,
-                "total_avistamientos": total_avistamientos,
-                "total_incidencias": total_incidencias,
-                "especie_mas_comun": especie_mas_comun or {
-                    "especie__nombre_cientifico": "No disponible",
-                    "especie__nombre_comun": "No disponible",
-                    "total_captura": 0,
+                "total_especies": {
+                    "value": total_especies,
+                    "descripcion": "Número total de especies registradas en el sistema.",
+                    "ejemplos": species_examples
                 },
-                "indice_diversidad_shannon": shannon_index,  # Nuevo KPI
+                "total_avistamientos": {
+                    "value": total_avistamientos,
+                    "descripcion": "Suma de observaciones registradas (alimentación, deambulación y reposo).",
+                    "detalles": {
+                        "alimentandose": alimentandose_total,
+                        "deambulando": deambulando_total,
+                        "en_reposo": en_reposo_total
+                    }
+                },
+                "total_incidencias": {
+                    "value": total_incidencias,
+                    "descripcion": "Suma de incidencias (heridas graves, leves y mortalidad).",
+                    "detalles": {
+                        "herida_grave": herida_grave_total,
+                        "herida_leve": herida_leve_total,
+                        "muerto": muerto_total
+                    }
+                },
+                "especie_mas_comun": {
+                    "nombre_cientifico": especie_mas_comun.get('especie__nombre_cientifico', 'No disponible') if especie_mas_comun else "No disponible",
+                    "nombre_comun": especie_mas_comun.get('especie__nombre_comun', 'No disponible') if especie_mas_comun else "No disponible",
+                    "total_captura": especie_mas_comun.get('total_captura', 0) if especie_mas_comun else 0,
+                    "descripcion": "Especie con mayor número de capturas registradas."
+                },
+                "indice_diversidad_shannon": {
+                    "value": shannon_index,
+                    "descripcion": "Índice que mide la diversidad de especies en el ecosistema (fórmula de Shannon).",
+                    "detalles": detalles_shannon
+                }
             }
 
             return Response(data, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
 
+        
 class TopEspeciesView(APIView):
     """
     API para obtener el top 10 de especies más capturadas, avistadas y con más incidencias.

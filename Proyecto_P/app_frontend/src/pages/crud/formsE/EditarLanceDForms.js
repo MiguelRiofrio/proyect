@@ -4,7 +4,8 @@ import { Table, Input, Button } from 'reactstrap';
 
 const renderDetalles = {
   palangre: (lance = {}, index, handleLanceChange, carnadas = []) => {
-    const detalles = lance.detalles || {};
+    // Extraemos los detalles desde la clave "palangre" del objeto "detalles"
+    const detalles = (lance.detalles && lance.detalles.palangre) || {};
     const carnadasList = Array.isArray(detalles.carnadas) ? detalles.carnadas : [];
 
     return (
@@ -26,9 +27,9 @@ const renderDetalles = {
                 <Input
                   type="text"
                   name="tipo_de_anzuelo"
-                  value={detalles.tipo_de_anzuelo || 'N'}
+                  value={detalles.tipo_de_anzuelo ?? 'N'}
                   onChange={(e) =>
-                    handleLanceChange(index, 'detalles.tipo_de_anzuelo', e.target.value)
+                    handleLanceChange(index, 'detalles.palangre.tipo_de_anzuelo', e.target.value)
                   }
                 />
               </td>
@@ -36,9 +37,13 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="tamano_anzuelo"
-                  value={detalles.tamano_anzuelo || ''}
+                  value={detalles.tamano_anzuelo ?? ''}
                   onChange={(e) =>
-                    handleLanceChange(index, 'detalles.tamano_anzuelo', parseFloat(e.target.value) || 0)
+                    handleLanceChange(
+                      index,
+                      'detalles.palangre.tamano_anzuelo',
+                      parseFloat(e.target.value) || 0
+                    )
                   }
                 />
               </td>
@@ -46,9 +51,13 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="cantidad_anzuelos"
-                  value={detalles.cantidad_anzuelos || ''}
+                  value={detalles.cantidad_anzuelos ?? ''}
                   onChange={(e) =>
-                    handleLanceChange(index, 'detalles.cantidad_anzuelos', parseInt(e.target.value, 10) || 0)
+                    handleLanceChange(
+                      index,
+                      'detalles.palangre.cantidad_anzuelos',
+                      parseInt(e.target.value, 10) || 0
+                    )
                   }
                 />
               </td>
@@ -56,9 +65,13 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="linea_madre_metros"
-                  value={detalles.linea_madre_metros || ''}
+                  value={detalles.linea_madre_metros ?? ''}
                   onChange={(e) =>
-                    handleLanceChange(index, 'detalles.linea_madre_metros', parseFloat(e.target.value) || 0)
+                    handleLanceChange(
+                      index,
+                      'detalles.palangre.linea_madre_metros',
+                      parseFloat(e.target.value) || 0
+                    )
                   }
                 />
               </td>
@@ -66,9 +79,13 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="profundidad_anzuelo_metros"
-                  value={detalles.profundidad_anzuelo_metros || ''}
+                  value={detalles.profundidad_anzuelo_metros ?? ''}
                   onChange={(e) =>
-                    handleLanceChange(index, 'detalles.profundidad_anzuelo_metros', parseFloat(e.target.value) || 0)
+                    handleLanceChange(
+                      index,
+                      'detalles.palangre.profundidad_anzuelo_metros',
+                      parseFloat(e.target.value) || 0
+                    )
                   }
                 />
               </td>
@@ -91,7 +108,7 @@ const renderDetalles = {
                 <td>
                   <Input
                     type="select"
-                    value={carnada.codigo_tipo_carnada || ''}
+                    value={carnada.codigo_tipo_carnada ?? ''}
                     onChange={(e) => {
                       const codigo = parseInt(e.target.value, 10);
                       const nombre = carnadas.find(c => c.codigo_tipo_carnada === codigo)?.nombre_carnada || 'Sin nombre';
@@ -101,7 +118,7 @@ const renderDetalles = {
                         codigo_tipo_carnada: codigo,
                         nombre_carnada: nombre,
                       };
-                      handleLanceChange(index, 'detalles.carnadas', updatedCarnadas);
+                      handleLanceChange(index, 'detalles.palangre.carnadas', updatedCarnadas);
                     }}
                   >
                     <option value="">Seleccione una carnada</option>
@@ -119,7 +136,7 @@ const renderDetalles = {
                   <Input
                     type="number"
                     name="porcentaje_carnada"
-                    value={carnada.porcentaje_carnada || ''}
+                    value={carnada.porcentaje_carnada ?? ''}
                     onChange={(e) => {
                       const porcentaje = parseFloat(e.target.value) || 0;
                       const updatedCarnadas = [...carnadasList];
@@ -127,7 +144,7 @@ const renderDetalles = {
                         ...updatedCarnadas[carnadaIndex],
                         porcentaje_carnada: porcentaje,
                       };
-                      handleLanceChange(index, 'detalles.carnadas', updatedCarnadas);
+                      handleLanceChange(index, 'detalles.palangre.carnadas', updatedCarnadas);
                     }}
                   />
                 </td>
@@ -137,7 +154,7 @@ const renderDetalles = {
                     size="sm"
                     onClick={() => {
                       const updatedCarnadas = carnadasList.filter((_, i) => i !== carnadaIndex);
-                      handleLanceChange(index, 'detalles.carnadas', updatedCarnadas);
+                      handleLanceChange(index, 'detalles.palangre.carnadas', updatedCarnadas);
                     }}
                   >
                     Eliminar
@@ -148,13 +165,13 @@ const renderDetalles = {
             <tr>
               <td colSpan="3">
                 <Button
-                  color='primary'
+                  color="primary"
                   onClick={() => {
                     const updatedCarnadas = [
                       ...carnadasList,
                       { codigo_tipo_carnada: '', porcentaje_carnada: 0 },
                     ];
-                    handleLanceChange(index, 'detalles.carnadas', updatedCarnadas);
+                    handleLanceChange(index, 'detalles.palangre.carnadas', updatedCarnadas);
                   }}
                 >
                   Agregar Carnada
@@ -164,12 +181,12 @@ const renderDetalles = {
           </tbody>
         </Table>
       </>
-    ); // Cambio aquí: reemplazar la coma con punto y coma
-  }, // Cerrar la función y agregar coma para la siguiente propiedad
+    );
+  },
 
+  // Los bloques "cerco" y "arrastre" se mantienen igual, si la estructura de datos allí es la esperada.
   cerco: (lance = {}, index, handleLanceChange) => {
     const detalles = lance.detalles || {};
-
     return (
       <>
         <h5>Detalles Específicos del Lance - Cerco</h5>
@@ -188,7 +205,7 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="altura_red"
-                  value={detalles.altura_red || ''}
+                  value={detalles.altura_red ?? ''}
                   onChange={(e) =>
                     handleLanceChange(index, 'detalles.altura_red', parseFloat(e.target.value) || 0)
                   }
@@ -198,7 +215,7 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="longitud_red"
-                  value={detalles.longitud_red || ''}
+                  value={detalles.longitud_red ?? ''}
                   onChange={(e) =>
                     handleLanceChange(index, 'detalles.longitud_red', parseFloat(e.target.value) || 0)
                   }
@@ -208,7 +225,7 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="malla_cabecero"
-                  value={detalles.malla_cabecero || ''}
+                  value={detalles.malla_cabecero ?? ''}
                   onChange={(e) =>
                     handleLanceChange(index, 'detalles.malla_cabecero', parseFloat(e.target.value) || 0)
                   }
@@ -218,7 +235,7 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="malla_cuerpo"
-                  value={detalles.malla_cuerpo || ''}
+                  value={detalles.malla_cuerpo ?? ''}
                   onChange={(e) =>
                     handleLanceChange(index, 'detalles.malla_cuerpo', parseFloat(e.target.value) || 0)
                   }
@@ -229,11 +246,10 @@ const renderDetalles = {
         </Table>
       </>
     );
-  }, // Cerrar la función y agregar coma para la siguiente propiedad
+  },
 
   arrastre: (lance = {}, index, handleLanceChange) => {
     const detalles = lance.detalles || {};
-
     return (
       <>
         <h5>Detalles Específicos del Lance - Arrastre</h5>
@@ -262,7 +278,7 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="copo"
-                  value={detalles.copo || ''}
+                  value={detalles.copo ?? ''}
                   onChange={(e) =>
                     handleLanceChange(index, 'detalles.copo', parseInt(e.target.value, 10) || 0)
                   }
@@ -272,7 +288,7 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="tunel"
-                  value={detalles.tunel || ''}
+                  value={detalles.tunel ?? ''}
                   onChange={(e) =>
                     handleLanceChange(index, 'detalles.tunel', parseInt(e.target.value, 10) || 0)
                   }
@@ -282,7 +298,7 @@ const renderDetalles = {
                 <Input
                   type="number"
                   name="pico"
-                  value={detalles.pico || ''}
+                  value={detalles.pico ?? ''}
                   onChange={(e) =>
                     handleLanceChange(index, 'detalles.pico', parseInt(e.target.value, 10) || 0)
                   }
@@ -293,7 +309,7 @@ const renderDetalles = {
         </Table>
       </>
     );
-  }, // Cerrar la función
+  },
 };
 
 export default renderDetalles;
