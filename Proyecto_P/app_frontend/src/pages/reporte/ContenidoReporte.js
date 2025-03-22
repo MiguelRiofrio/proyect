@@ -175,7 +175,7 @@ const ContenidoReporte = ({ reporte, filtros }) => {
               title="Incidencias por Tipo (por Especie)"
               data={reporte.incidencias_por_tipo}
               columns={[
-                { field: 'especie__nombre_cientifico' },
+                { field: 'especie__nombre_cientifico', label: 'Nombre Cientifico'  },
                 { field: 'herida_grave', align: 'right', label: 'Grave' },
                 { field: 'herida_leve', align: 'right', label: 'Leve' },
                 { field: 'muerto', align: 'right', label: 'Muerto' },
@@ -187,8 +187,8 @@ const ContenidoReporte = ({ reporte, filtros }) => {
               title="Esfuerzo Pesquero por Embarcación"
               data={reporte.esfuerzo_por_embarcacion}
               columns={[
-                { field: 'embarcacion__nombre_embarcacion' },
-                { field: 'total_lances', align: 'right' },
+                { field: 'embarcacion__nombre_embarcacion', label:'Embarcaciones' },
+                { field: 'total_lances', align: 'right', label:'Total lances' },
               ]}
             />
           </CardContent>

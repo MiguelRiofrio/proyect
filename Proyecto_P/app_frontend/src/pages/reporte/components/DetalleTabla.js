@@ -1,6 +1,5 @@
-// DetalleTabla.js
 import React from 'react';
-import { Typography, Table, TableBody, TableCell, TableRow, TableContainer, Paper, Divider } from '@mui/material';
+import { Typography, Table, TableBody, TableCell, TableRow, TableContainer, Paper, Divider, TableHead } from '@mui/material';
 
 const DetalleTabla = ({ title, data, columns }) => {
   if (!data || data.length === 0) return null;
@@ -12,6 +11,15 @@ const DetalleTabla = ({ title, data, columns }) => {
       </Typography>
       <TableContainer component={Paper} sx={{ mb: 2 }}>
         <Table size="small">
+          <TableHead>
+            <TableRow>
+              {columns.map((col, index) => (
+                <TableCell key={index} align={col.align || 'left'}sx={{ color: 'white' }}  >
+                  {col.label || col.field}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
           <TableBody>
             {data.map((item, idx) => (
               <TableRow key={idx}>
